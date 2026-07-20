@@ -1,0 +1,21 @@
+# Excluded per request — Stitch UI/UX mockups, not part of the shipped repo
+stitch_direct_outreach_lead_finder/
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Backend
+backend/dist/
+backend/.env
+
+# Expo / React Native
+reachiq-app/.expo/
+reachiq-app/dist/
+reachiq-app/web-build/
+reachiq-app/*.orig.*
+reachiq-app/ios/
+reachiq-app/android/

@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String                    @id @default(cuid())
+  email          String                    @unique
+  passwordHash   String
+  createdAt      DateTime                  @default(now())
+  wallet         CreditWallet?
+  reveals        ContactReveal[]
+  searchQueries  SearchQuery[]
+  refreshTokens  RefreshToken[]
+  aiCredential   UserAiCredential?
+  aiDescriptions UserContactDescription[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([userId])
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+enum ReservationStatus {
+  PENDING
+  SETTLED
+  REFUNDED
+}
+
+model CreditReservation {
+  id        String            @id @default(cuid())
+  userId    String
+  contactId String
+  amount    Int
+  status    ReservationStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  settledAt DateTime?
+
+  @@index([userId, status])
+}
+
+enum ComplianceTier {
+  STANDARD
+  CAUTION
+  RESTRICTED
+}
+
+model Company {
+  id           String                @id @default(cuid())
+  name         String
+  domain       String                @unique
+  industry     String?
+  country      String?
+  sizeRange    String?
+  emailPattern CompanyEmailPattern?
+  contacts     Contact[]
+}
+
+model CompanyEmailPattern {
+  id         String   @id @default(cuid())
+  companyId  String   @unique
+  company    Company  @relation(fields: [companyId], references: [id])
+  template   String
+  confidence Float
+  sampleSize Int      @default(1)
+  updatedAt  DateTime @updatedAt
+}
+
+model Contact {
+  id             String                   @id @default(cuid())
+  fullName       String
+  firstName      String
+  lastName       String
+  jobTitle       String?
+  seniority      String?
+  companyId      String?
+  company        Company?                 @relation(fields: [companyId], references: [id])
+  country        String?
+  industry       String?
+  complianceTier ComplianceTier           @default(STANDARD)
+  sourceType     String?
+  sourceUrl      String?
+  createdAt      DateTime                 @default(now())
+  reveals        ContactReveal[]
+  descriptions   UserContactDescription[]
+
+  @@index([industry, country])
+  @@unique([sourceType, sourceUrl, fullName])
+}
+
+model ContactReveal {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  contactId          String
+  contact            Contact  @relation(fields: [contactId], references: [id])
+  email              String
+  confidence         Float
+  verificationStatus String
+  revealedAt         DateTime @default(now())
+
+  @@unique([userId, contactId])
+}
+
+model UserAiCredential {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  provider     String   @default("openai")
+  encryptedKey String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model UserContactDescription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id])
+  text      String   @db.Text
+  source    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, contactId])
+}
+
+model SuppressionEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model SearchQuery {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  filters     Json
+  status      String
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+model DirectoryCrawlProgress {
+  id           String   @id @default(cuid())
+  directoryId  String
+  industrySlug String
+  locationSlug String
+  lastPage     Int      @default(0)
+  status       String   @default("in_progress")
+  updatedAt    DateTime @updatedAt
+
+  @@unique([directoryId, industrySlug, locationSlug])
+}
