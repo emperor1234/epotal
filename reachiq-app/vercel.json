@@ -1,0 +1,6 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/contact/:id", "destination": "/contact/[id].html" }
+  ]
+}

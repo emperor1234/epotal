@@ -1,0 +1,53 @@
+services:
+  # No local Postgres service — using Neon (or another hosted Postgres) via
+  # DATABASE_URL/DIRECT_URL in .env, so nothing to run/persist here.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies pending migrations against DIRECT_URL, then exits.
+  # api/worker wait for it to succeed so a fresh deploy never races a schema
+  # change.
+  migrate:
+    build: .
+    command: npx prisma migrate deploy
+    env_file: .env
+
+  api:
+    build: .
+    restart: unless-stopped
+    command: node dist/server.js
+    ports:
+      - '4000:4000'
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: node dist/queues/worker.js
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  redis_data:

@@ -1,19 +1,83 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { CONTACTS } from '../../data/contacts';
+import { ApiRequestError } from '../../config/api';
+import { useAuth } from '../../context/auth';
+import { ApiContact, ApiReveal, ApiSummary } from '../../data/api-types';
+import * as contactsApi from '../../data/contactsApi';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const contact = CONTACTS.find((c) => c.id === id) ?? CONTACTS[0];
+  const { withAuth, wallet, refreshWallet } = useAuth();
+
+  const [contact, setContact] = useState<ApiContact | null>(null);
+  const [summary, setSummary] = useState<ApiSummary | null>(null);
+  const [reveal, setReveal] = useState<ApiReveal | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [revealing, setRevealing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [revealError, setRevealError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [{ contact: fetchedContact }, { summary: fetchedSummary }] = await Promise.all([
+        withAuth((token) => contactsApi.getContact(id, token)),
+        withAuth((token) => contactsApi.getContactSummary(id, token)),
+      ]);
+      setContact(fetchedContact);
+      setSummary(fetchedSummary);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : 'Could not load this contact.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, withAuth]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleReveal = async () => {
+    if (!contact) return;
+    setRevealError(null);
+    setRevealing(true);
+    try {
+      const { reveal: result } = await withAuth((token) => contactsApi.revealContact(contact.id, token));
+      setReveal(result);
+      await refreshWallet();
+    } catch (err) {
+      setRevealError(err instanceof ApiRequestError ? err.message : 'Reveal failed — try again.');
+    } finally {
+      setRevealing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={colors.secondary} />
+      </View>
+    );
+  }
+
+  if (error || !contact) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error ?? 'Contact not found.'}</Text>
+        <Button label="Go back" variant="outline" onPress={() => router.back()} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -23,7 +87,7 @@ export default function ContactDetailScreen() {
         </Pressable>
         <Text style={styles.topBarTitle}>ReachIQ</Text>
         <View style={styles.creditPill}>
-          <Text style={styles.creditText}>540 Credits</Text>
+          <Text style={styles.creditText}>{wallet?.balance ?? '—'} Credits</Text>
         </View>
       </View>
 
@@ -32,21 +96,24 @@ export default function ContactDetailScreen() {
           <View style={styles.heroBanner} />
           <View style={styles.heroBody}>
             <View style={styles.avatarWrap}>
-              <Image source={{ uri: contact.avatar }} style={styles.avatar} contentFit="cover" />
-              {contact.status === 'Verified' && (
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={40} color={colors.outline} />
+              </View>
+              {reveal?.verificationStatus === 'valid' && (
                 <View style={styles.checkBadge}>
                   <Ionicons name="checkmark-circle" size={20} color={colors.emerald} />
                 </View>
               )}
             </View>
-            <Text style={styles.name}>{contact.name}</Text>
+            <Text style={styles.name}>{contact.fullName}</Text>
             <Text style={styles.title}>
-              {contact.title} @ {contact.company}
+              {contact.jobTitle ?? 'Unknown title'}
+              {contact.company ? ` @ ${contact.company.name}` : ''}
             </Text>
             <View style={styles.tagRow}>
-              <Badge label="Enterprise Software" tone="neutral" />
-              <Badge label="SaaS Growth" tone="neutral" />
-              <Badge label={contact.location} tone="neutral" />
+              {contact.industry && <Badge label={contact.industry} tone="neutral" />}
+              {contact.seniority && <Badge label={contact.seniority} tone="neutral" />}
+              {contact.country && <Badge label={contact.country} tone="neutral" />}
             </View>
           </View>
         </View>
@@ -54,75 +121,69 @@ export default function ContactDetailScreen() {
         <Card style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="sparkles" size={16} color={colors.secondary} />
-            <Text style={styles.sectionTitle}>AI Professional Summary</Text>
+            <Text style={styles.sectionTitle}>{summary?.source === 'ai' ? 'AI Professional Summary' : 'Professional Summary'}</Text>
           </View>
-          <Text style={styles.summaryText}>{contact.aiSummary}</Text>
+          <Text style={styles.summaryText}>{summary?.text ?? 'No summary available yet.'}</Text>
         </Card>
 
         <Card style={styles.section}>
           <View style={styles.sectionHeaderRowBetween}>
             <Text style={styles.sectionTitleDark}>Contact Intelligence</Text>
-            <Badge label="Verified" tone="verified" icon={<Ionicons name="checkmark-circle" size={12} color="#047857" />} />
+            {reveal && (
+              <Badge
+                label={reveal.verificationStatus === 'valid' ? 'Verified' : reveal.verificationStatus === 'catch_all' ? 'Catch-all' : 'Unverified'}
+                tone={reveal.verificationStatus === 'valid' ? 'verified' : 'catchAll'}
+              />
+            )}
           </View>
 
-          <View style={styles.contactRow}>
-            <Ionicons name="mail-outline" size={20} color={colors.secondary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.contactLabel}>Primary Email</Text>
-              <Text style={styles.contactValueLink}>{contact.email}</Text>
-            </View>
-          </View>
-          <View style={styles.actionRow}>
-            <Button label="Email" variant="secondary" icon="send" style={{ flex: 1 }} />
-            <Pressable style={styles.iconButton} onPress={() => setCopied(true)}>
-              <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={colors.onSurface} />
-            </Pressable>
-          </View>
-
-          {contact.phone && (
+          {reveal ? (
             <>
-              <View style={styles.divider} />
               <View style={styles.contactRow}>
-                <Ionicons name="call-outline" size={20} color={colors.secondary} />
+                <Ionicons name="mail-outline" size={20} color={colors.secondary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.contactLabel}>Direct Mobile</Text>
-                  <Text style={styles.contactValue}>{contact.phone}</Text>
+                  <Text style={styles.contactLabel}>Primary Email</Text>
+                  <Text style={styles.contactValueLink}>{reveal.email}</Text>
                 </View>
               </View>
               <View style={styles.actionRow}>
-                <Button label="Call" variant="outline" icon="call" style={{ flex: 1 }} />
-                <Pressable style={styles.iconButton}>
-                  <Ionicons name="chatbubble-outline" size={18} color={colors.onSurface} />
+                <Button label="Email" variant="secondary" icon="send" style={{ flex: 1 }} />
+                <Pressable style={styles.iconButton} onPress={() => setCopied(true)}>
+                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={colors.onSurface} />
                 </Pressable>
               </View>
+            </>
+          ) : (
+            <>
+              {revealError && <Text style={styles.errorText}>{revealError}</Text>}
+              <Button
+                label={revealing ? 'Revealing…' : 'Reveal Contact (Free)'}
+                variant="secondary"
+                icon="lock-open-outline"
+                loading={revealing}
+                onPress={handleReveal}
+              />
             </>
           )}
         </Card>
 
-        <View style={styles.sourceNote}>
-          <Ionicons name="information-circle-outline" size={14} color={colors.outline} />
-          <Text style={styles.sourceNoteText}>Extracted from Company Website & Google Search</Text>
-        </View>
-
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitleUpper}>Company Insights</Text>
-          <InsightRow icon="people-outline" label="Team Size" value={contact.teamSize} />
-          <InsightRow icon="people-outline" label="Company Size" value={contact.companySize} />
-          <InsightRow icon="cash-outline" label="Estimated Revenue" value={contact.estimatedRevenue} />
-          <InsightRow icon="location-outline" label="Headquarters" value={contact.headquarters} />
-          <Button label="View Company Profile" variant="outline" />
-        </Card>
-
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitleUpper}>Recent Activity</Text>
-          <View style={styles.activityRow}>
-            <View style={styles.activityDot} />
-            <View>
-              <Text style={styles.activityTime}>2 days ago</Text>
-              <Text style={styles.activityText}>Profile data updated via LinkedIn</Text>
-            </View>
+        {contact.sourceUrl && (
+          <View style={styles.sourceNote}>
+            <Ionicons name="information-circle-outline" size={14} color={colors.outline} />
+            <Text style={styles.sourceNoteText}>Sourced via {contact.sourceType ?? 'unknown source'}</Text>
           </View>
-        </Card>
+        )}
+
+        {contact.company && (
+          <Card style={styles.section}>
+            <Text style={styles.sectionTitleUpper}>Company Insights</Text>
+            <InsightRow icon="business-outline" label="Company" value={contact.company.name} />
+            {contact.company.sizeRange && <InsightRow icon="people-outline" label="Company Size" value={contact.company.sizeRange} />}
+            {contact.company.industry && <InsightRow icon="briefcase-outline" label="Industry" value={contact.company.industry} />}
+            {contact.company.country && <InsightRow icon="location-outline" label="Headquarters" value={contact.company.country} />}
+            <InsightRow icon="globe-outline" label="Domain" value={contact.company.domain} />
+          </Card>
+        )}
       </ScrollView>
     </View>
   );
@@ -152,6 +213,8 @@ function InsightRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: colors.background, padding: spacing.containerMargin },
+  errorText: { ...typography.bodyMd, color: colors.error, textAlign: 'center' },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -170,7 +233,16 @@ const styles = StyleSheet.create({
   heroBanner: { height: 90, backgroundColor: colors.secondary },
   heroBody: { alignItems: 'center', paddingBottom: 20, marginTop: -48 },
   avatarWrap: { position: 'relative' },
-  avatar: { width: 96, height: 96, borderRadius: radius.full, borderWidth: 4, borderColor: colors.surfaceContainerLowest },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.full,
+    borderWidth: 4,
+    borderColor: colors.surfaceContainerLowest,
+    backgroundColor: colors.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   checkBadge: { position: 'absolute', bottom: 2, right: 2, backgroundColor: colors.surfaceContainerLowest, borderRadius: radius.full, padding: 1 },
   name: { ...typography.headlineLg, color: colors.primary, marginTop: 12 },
   title: { ...typography.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
@@ -185,7 +257,6 @@ const styles = StyleSheet.create({
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   contactLabel: { ...typography.labelSm, color: colors.outline },
   contactValueLink: { ...typography.bodyLg, color: colors.secondary, fontWeight: '700' },
-  contactValue: { ...typography.bodyLg, color: colors.onSurface, fontWeight: '700' },
   actionRow: { flexDirection: 'row', gap: 8 },
   iconButton: {
     width: 48,
@@ -196,15 +267,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: 4 },
   sourceNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.containerMargin, marginTop: spacing.elementSpacing, justifyContent: 'center' },
   sourceNoteText: { ...typography.labelSm, color: colors.outline },
   insightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   insightIcon: { width: 32, height: 32, borderRadius: radius.DEFAULT, backgroundColor: colors.surfaceContainer, alignItems: 'center', justifyContent: 'center' },
   insightLabel: { ...typography.labelSm, color: colors.onSurfaceVariant },
   insightValue: { ...typography.bodyMd, fontWeight: '700', color: colors.onSurface },
-  activityRow: { flexDirection: 'row', gap: 10 },
-  activityDot: { width: 10, height: 10, borderRadius: radius.full, borderWidth: 2, borderColor: colors.secondary, marginTop: 4 },
-  activityTime: { ...typography.labelSm, color: colors.outline },
-  activityText: { ...typography.bodyMd, color: colors.onSurface },
 });

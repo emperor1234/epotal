@@ -1,25 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
+import { ApiRequestError } from '../config/api';
+import { useAuth } from '../context/auth';
 import { colors, spacing, typography } from '../theme/tokens';
 
 export default function SignUpScreen() {
-  const router = useRouter();
+  const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // Full name is UI-only for now — the backend's User model doesn't
+      // persist a display name yet, only email + credentials.
+      await signUp(email.trim(), password);
+      // Navigation on success is handled by the root layout's AuthGate.
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : 'Could not reach the server. Please try again.');
+    } finally {
       setLoading(false);
-      router.replace('/(tabs)/search');
-    }, 600);
+    }
   };
 
   return (
@@ -45,6 +55,8 @@ export default function SignUpScreen() {
             onChangeText={setEmail}
           />
           <Input label="Password" icon="lock-closed-outline" secure placeholder="••••••••" value={password} onChangeText={setPassword} />
+
+          {error && <Text style={styles.error}>{error}</Text>}
 
           <Button label="Create Account" variant="secondary" icon="arrow-forward" iconPosition="right" loading={loading} onPress={handleCreate} />
 
@@ -93,6 +105,7 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   divider: { flex: 1, height: 1, backgroundColor: colors.outlineVariant },
   dividerText: { ...typography.labelSm, color: colors.outline },
+  error: { ...typography.labelMd, color: colors.error, fontWeight: '600' },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   footerText: { color: colors.onSurfaceVariant },
   link: { color: colors.secondary, fontWeight: '700' },

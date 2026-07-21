@@ -1,24 +1,32 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
+import { ApiRequestError } from '../config/api';
+import { useAuth } from '../context/auth';
 import { colors, spacing, typography } from '../theme/tokens';
 
 export default function SignInScreen() {
-  const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signIn(email.trim(), password);
+      // Navigation on success is handled by the root layout's AuthGate.
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : 'Could not reach the server. Please try again.');
+    } finally {
       setLoading(false);
-      router.replace('/(tabs)/search');
-    }, 600);
+    }
   };
 
   return (
@@ -49,6 +57,8 @@ export default function SignInScreen() {
             </View>
             <Input icon="lock-closed-outline" secure placeholder="••••••••" value={password} onChangeText={setPassword} />
           </View>
+
+          {error && <Text style={styles.error}>{error}</Text>}
 
           <Button label="Sign In" variant="secondary" icon="arrow-forward" iconPosition="right" loading={loading} onPress={handleSignIn} />
 
@@ -97,6 +107,7 @@ const styles = StyleSheet.create({
   passwordLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   fieldLabel: { ...typography.labelMd, fontSize: 13, fontWeight: '700', color: colors.onSurface },
   forgot: { ...typography.labelMd, color: colors.secondary, fontWeight: '700' },
+  error: { ...typography.labelMd, color: colors.error, fontWeight: '600' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   divider: { flex: 1, height: 1, backgroundColor: colors.outlineVariant },
   dividerText: { ...typography.labelSm, color: colors.outline },

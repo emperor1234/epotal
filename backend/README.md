@@ -53,6 +53,32 @@ npm run dev               # API server on :4000
 npm run worker             # separate process: consumes the search queue
 ```
 
+## Deploying on Coolify
+
+The `Dockerfile` builds a single image that serves both processes; which one
+runs is just the container's start command. `docker-compose.yml` wires up
+Postgres, Redis, a one-shot `migrate` service, and the `api`/`worker`
+services together — this is also directly usable as a Coolify **Docker
+Compose** resource, which is the least fiddly path:
+
+1. In Coolify: **New Resource → Docker Compose**, point it at this repo/subfolder (`backend/`).
+2. Set the real secrets as environment variables on the resource (Coolify injects them into every service): `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY_BASE64`, `ZEROBOUNCE_API_KEY` (optional). Generate fresh values — don't reuse the ones in your local `.env`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # ENCRYPTION_KEY_BASE64
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"      # JWT_*_SECRET (run twice)
+   ```
+3. Deploy. Coolify builds the image once and starts `postgres`, `redis`, runs `migrate` to completion, then starts `api` and `worker`. Postgres/Redis data persist via the named volumes.
+4. Point your reverse proxy / domain at the `api` service's port `4000`. The `worker` service has no HTTP port — it just needs to stay running and share the same `DATABASE_URL`/`REDIS_URL`.
+
+If you'd rather deploy `api` and `worker` as two separate Coolify
+**Dockerfile** apps instead of one Compose stack (e.g. to scale/restart them
+independently), that works too — build the same `Dockerfile` for both, keep
+the default `CMD` for the API app, and override the start command to `node
+dist/queues/worker.js` for the worker app. Either way, run
+`npx prisma migrate deploy` once against the production `DATABASE_URL`
+before the first deploy (Coolify's "Pre-deployment Command" hook works for
+this if you're not using the Compose `migrate` service).
+
 ## API surface
 
 All routes are mounted under `/api` and (except `/api/auth/*`) require `Authorization: Bearer <accessToken>`.

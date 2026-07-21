@@ -5,6 +5,9 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { TopBar } from '../../components/TopBar';
+import { ApiRequestError } from '../../config/api';
+import { useAuth } from '../../context/auth';
+import * as searchesApi from '../../data/searches';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 
 const SUGGESTIONS = ['AI/ML', 'B2B', 'Cloud'];
@@ -12,10 +15,16 @@ const SENIORITY = ['Junior', 'Mid', 'Senior', 'Exec'];
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { withAuth, wallet } = useAuth();
+
   const [keywords, setKeywords] = useState(['SaaS', 'Fintech']);
   const [keywordInput, setKeywordInput] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [country, setCountry] = useState('');
   const [seniority, setSeniority] = useState('Junior');
   const [fullCrawl, setFullCrawl] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const addKeyword = (word: string) => {
     const trimmed = word.trim();
@@ -25,9 +34,37 @@ export default function SearchScreen() {
 
   const removeKeyword = (word: string) => setKeywords((k) => k.filter((w) => w !== word));
 
+  const handleSearch = async () => {
+    setError(null);
+    if (!industry.trim() || !country.trim()) {
+      setError('Industry and Country are required.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { searchQuery } = await withAuth((token) =>
+        searchesApi.createSearch(
+          {
+            industry: industry.trim(),
+            country: country.trim(),
+            seniority,
+            keywords,
+            mode: fullCrawl ? 'full_directory' : 'quick',
+          },
+          token,
+        ),
+      );
+      router.push({ pathname: '/search-results', params: { searchId: searchQuery.id } });
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : 'Could not reach the server. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <View style={styles.screen}>
-      <TopBar credits={540} />
+      <TopBar credits={wallet?.balance} />
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.headerCard}>
           <Text style={styles.title}>Professional Search</Text>
@@ -65,8 +102,8 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <SelectField label="Industry" placeholder="Select Industry" icon="chevron-down" />
-        <SelectField label="Country" placeholder="Select Country" icon="earth" />
+        <TextField label="Industry" placeholder="e.g. SaaS" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
+        <TextField label="Country" placeholder="e.g. United Kingdom" icon="earth" value={country} onChangeText={setCountry} />
 
         <View style={styles.section}>
           <Text style={styles.label}>Seniority Level</Text>
@@ -86,8 +123,6 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <SelectField label="Company Size" placeholder="Select Company Size" icon="people-outline" />
-
         <View style={styles.toggleRow}>
           <View style={styles.toggleLabelRow}>
             <Text style={styles.toggleLabel}>Full Directory Crawl</Text>
@@ -100,11 +135,14 @@ export default function SearchScreen() {
           />
         </View>
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         <Button
           label="Search Professionals"
           variant="dark"
           icon="people-outline"
-          onPress={() => router.push('/search-results')}
+          loading={submitting}
+          onPress={handleSearch}
         />
 
         <View style={styles.footerRow}>
@@ -121,22 +159,32 @@ export default function SearchScreen() {
   );
 }
 
-function SelectField({
+function TextField({
   label,
   placeholder,
   icon,
+  value,
+  onChangeText,
 }: {
   label: string;
   placeholder: string;
   icon: keyof typeof Ionicons.glyphMap;
+  value: string;
+  onChangeText: (text: string) => void;
 }) {
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
-      <Pressable style={styles.selectField}>
-        <Text style={styles.selectPlaceholder}>{placeholder}</Text>
+      <View style={styles.selectField}>
+        <TextInput
+          style={styles.selectInput}
+          placeholder={placeholder}
+          placeholderTextColor={colors.outline}
+          value={value}
+          onChangeText={onChangeText}
+        />
         <Ionicons name={icon} size={18} color={colors.outline} />
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -186,7 +234,7 @@ const styles = StyleSheet.create({
     height: 48,
     backgroundColor: colors.surfaceContainerLowest,
   },
-  selectPlaceholder: { ...typography.bodyLg, color: colors.outline },
+  selectInput: { flex: 1, ...typography.bodyLg, color: colors.onSurface },
   segmented: {
     flexDirection: 'row',
     backgroundColor: colors.surfaceContainer,
@@ -205,6 +253,7 @@ const styles = StyleSheet.create({
   },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   toggleLabel: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },
+  error: { ...typography.labelMd, color: colors.error, fontWeight: '600' },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',

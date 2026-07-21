@@ -1,25 +1,48 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Contact } from '../data/contacts';
+import { ApiRequestError } from '../config/api';
+import { useAuth } from '../context/auth';
+import * as contactsApi from '../data/contactsApi';
+import { ApiContact, ApiReveal } from '../data/api-types';
 import { colors, radius, spacing, typography } from '../theme/tokens';
 import { Badge } from './Badge';
 
-export function ProfileCard({ contact, onReveal }: { contact: Contact; onReveal?: () => void }) {
+export function ProfileCard({ contact, onRevealed }: { contact: ApiContact; onRevealed?: (reveal: ApiReveal) => void }) {
   const router = useRouter();
-  const [revealed, setRevealed] = useState(false);
+  const { withAuth, refreshWallet } = useAuth();
+  const [reveal, setReveal] = useState<ApiReveal | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const confidenceColor = contact.status === 'Verified' ? colors.emerald : colors.amber;
+  const confidenceColor = reveal?.verificationStatus === 'valid' ? colors.emerald : colors.amber;
+  const filledBars = reveal ? Math.max(1, Math.round(reveal.confidence * 4)) : 0;
+
+  const handleReveal = async () => {
+    setError(null);
+    setRevealing(true);
+    try {
+      const { reveal: result } = await withAuth((token) => contactsApi.revealContact(contact.id, token));
+      setReveal(result);
+      onRevealed?.(result);
+      await refreshWallet();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : 'Reveal failed — try again.');
+    } finally {
+      setRevealing(false);
+    }
+  };
 
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/contact/${contact.id}`)}>
       <View style={styles.topRow}>
         <View style={styles.identityRow}>
           <View style={styles.avatarWrap}>
-            <Image source={{ uri: contact.avatar }} style={styles.avatar} contentFit="cover" />
-            {contact.status === 'Verified' && (
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={28} color={colors.outline} />
+            </View>
+            {reveal?.verificationStatus === 'valid' && (
               <View style={styles.checkBadge}>
                 <Ionicons name="checkmark-circle" size={16} color={colors.emerald} />
               </View>
@@ -27,64 +50,68 @@ export function ProfileCard({ contact, onReveal }: { contact: Contact; onReveal?
           </View>
           <View style={styles.identityText}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>{contact.name}</Text>
-              <Badge label={contact.status} tone={contact.status === 'Verified' ? 'verified' : 'catchAll'} />
+              <Text style={styles.name}>{contact.fullName}</Text>
+              {reveal && (
+                <Badge
+                  label={reveal.verificationStatus === 'valid' ? 'Verified' : reveal.verificationStatus === 'catch_all' ? 'Catch-all' : 'Unverified'}
+                  tone={reveal.verificationStatus === 'valid' ? 'verified' : 'catchAll'}
+                />
+              )}
             </View>
-            <Text style={styles.title}>{contact.title}</Text>
+            <Text style={styles.title}>{contact.jobTitle ?? 'Unknown title'}</Text>
             <View style={styles.metaRow}>
-              <Text style={styles.metaCompany}>{contact.company}</Text>
-              <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={13} color={colors.outline} />
-                <Text style={styles.metaText}>{contact.location}</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="people-outline" size={13} color={colors.outline} />
-                <Text style={styles.metaText}>{contact.companySize}</Text>
-              </View>
+              <Text style={styles.metaCompany}>{contact.company?.name ?? 'Unknown company'}</Text>
+              {contact.country && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={13} color={colors.outline} />
+                  <Text style={styles.metaText}>{contact.country}</Text>
+                </View>
+              )}
+              {contact.company?.sizeRange && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="people-outline" size={13} color={colors.outline} />
+                  <Text style={styles.metaText}>{contact.company.sizeRange}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
       </View>
 
       <View style={styles.actionRow}>
-        <View>
-          <Text style={styles.confidenceLabel}>Email Confidence</Text>
-          <View style={styles.confidenceBars}>
-            {[1, 2, 3, 4].map((i) => (
-              <View
-                key={i}
-                style={[styles.bar, { backgroundColor: i <= contact.confidence ? confidenceColor : colors.outlineVariant }]}
-              />
-            ))}
+        {reveal && (
+          <View>
+            <Text style={styles.confidenceLabel}>Email Confidence</Text>
+            <View style={styles.confidenceBars}>
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} style={[styles.bar, { backgroundColor: i <= filledBars ? confidenceColor : colors.outlineVariant }]} />
+              ))}
+            </View>
           </View>
-        </View>
+        )}
         <Pressable
-          style={[styles.revealButton, revealed && styles.revealButtonDone]}
+          style={[styles.revealButton, reveal && styles.revealButtonDone]}
+          disabled={revealing || !!reveal}
           onPress={(e) => {
             e.stopPropagation();
-            setRevealed(true);
-            onReveal?.();
+            handleReveal();
           }}
         >
-          <Ionicons name={revealed ? 'mail' : 'lock-open-outline'} size={16} color={revealed ? colors.primary : colors.onSecondary} />
-          <Text style={[styles.revealText, revealed && styles.revealTextDone]}>
-            {revealed ? contact.email : 'Reveal for 1 Credit'}
+          <Ionicons name={reveal ? 'mail' : 'lock-open-outline'} size={16} color={reveal ? colors.primary : colors.onSecondary} />
+          <Text style={[styles.revealText, reveal && styles.revealTextDone]}>
+            {revealing ? 'Revealing…' : reveal ? reveal.email : 'Reveal Contact (Free)'}
           </Text>
         </Pressable>
       </View>
+
+      {error && <Text style={styles.error}>{error}</Text>}
 
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
           <View style={styles.footerItem}>
             <Ionicons name="at-outline" size={16} color={colors.outline} />
-            <Text style={[styles.footerText, !revealed && styles.blurred]}>{contact.email}</Text>
+            <Text style={[styles.footerText, !reveal && styles.blurred]}>{reveal?.email ?? '••••••@••••••.com'}</Text>
           </View>
-          {contact.phone && (
-            <View style={styles.footerItem}>
-              <Ionicons name="call-outline" size={16} color={colors.outline} />
-              <Text style={[styles.footerText, !revealed && styles.blurred]}>{contact.phone}</Text>
-            </View>
-          )}
         </View>
         <View style={styles.footerIcons}>
           <Ionicons name="bookmark-outline" size={18} color={colors.outline} />
@@ -114,6 +141,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     backgroundColor: colors.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkBadge: {
     position: 'absolute',
@@ -143,10 +172,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: radius.md,
+    marginLeft: 'auto',
   },
   revealButtonDone: { backgroundColor: colors.surfaceContainerHigh },
   revealText: { ...typography.labelMd, color: colors.onSecondary, fontWeight: '700' },
   revealTextDone: { color: colors.primary },
+  error: { ...typography.labelSm, color: colors.error, fontWeight: '600' },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
