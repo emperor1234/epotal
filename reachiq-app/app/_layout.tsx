@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { InstallPrompt } from '../components/InstallPrompt';
 import { AuthProvider, useAuth } from '../context/auth';
 import { colors } from '../theme/tokens';
 
@@ -41,6 +42,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <StatusBar style="dark" />
+        <InstallPrompt />
         <AuthGate>
           <Stack
             screenOptions={{
