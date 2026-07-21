@@ -1,6 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, ApiRequestError } from '../config/api';
+import * as storage from '../lib/storage';
 
 const REFRESH_TOKEN_KEY = 'reachiq.refreshToken';
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
       setAccessToken(session.accessToken);
       setRefreshToken(session.refreshToken);
-      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, session.refreshToken);
+      await storage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
       await fetchWallet(session.accessToken);
     },
     [fetchWallet],
@@ -56,17 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(null);
     setRefreshToken(null);
     setWallet(null);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await storage.deleteItem(REFRESH_TOKEN_KEY);
   }, []);
 
   useEffect(() => {
     (async () => {
-      const storedRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-      if (!storedRefreshToken) {
-        setLoading(false);
-        return;
-      }
       try {
+        const storedRefreshToken = await storage.getItem(REFRESH_TOKEN_KEY);
+        if (!storedRefreshToken) return;
+
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await api.post<{
           accessToken: string;
           refreshToken: string;
@@ -116,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           setAccessToken(refreshed.accessToken);
           setRefreshToken(refreshed.refreshToken);
-          await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshed.refreshToken);
+          await storage.setItem(REFRESH_TOKEN_KEY, refreshed.refreshToken);
           return fn(refreshed.accessToken);
         }
         throw err;
