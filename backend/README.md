@@ -36,7 +36,7 @@ src/
     ai/                      # BYOK OpenAI key storage + description generation
 queues/
     search.queue.ts           # BullMQ queue definition
-    worker.ts                 # standalone worker process (run separately)
+    worker.ts                 # search worker — started in-process by server.ts
 ```
 
 ## Running locally
@@ -57,9 +57,10 @@ npm run worker             # separate process: consumes the search queue
 
 The `Dockerfile` builds a single image that serves both processes; which one
 runs is just the container's start command. `docker-compose.yml` wires up
-Postgres, Redis, a one-shot `migrate` service, and the `api`/`worker`
-services together — this is also directly usable as a Coolify **Docker
-Compose** resource, which is the least fiddly path:
+Redis, a one-shot `migrate` service, and the single `api` service (which
+runs the HTTP server *and* the BullMQ search worker in the same process —
+see `server.ts`) together — this is also directly usable as a Coolify
+**Docker Compose** resource:
 
 1. In Coolify: **New Resource → Docker Compose**, point it at this repo/subfolder (`backend/`).
 2. Set the real secrets as environment variables on the resource (Coolify injects them into every service): `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY_BASE64`, `ZEROBOUNCE_API_KEY` (optional). Generate fresh values — don't reuse the ones in your local `.env`:
@@ -67,17 +68,22 @@ Compose** resource, which is the least fiddly path:
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # ENCRYPTION_KEY_BASE64
    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"      # JWT_*_SECRET (run twice)
    ```
-3. Deploy. Coolify builds the image once and starts `postgres`, `redis`, runs `migrate` to completion, then starts `api` and `worker`. Postgres/Redis data persist via the named volumes.
-4. Point your reverse proxy / domain at the `api` service's port `4000`. The `worker` service has no HTTP port — it just needs to stay running and share the same `DATABASE_URL`/`REDIS_URL`.
+3. Deploy. Coolify builds the image once, starts `redis`, runs `migrate` to completion, then starts `api`. Redis data persists via the named volume.
+4. Point your reverse proxy / domain at the `api` service's port `4000`.
 
-If you'd rather deploy `api` and `worker` as two separate Coolify
-**Dockerfile** apps instead of one Compose stack (e.g. to scale/restart them
-independently), that works too — build the same `Dockerfile` for both, keep
-the default `CMD` for the API app, and override the start command to `node
-dist/queues/worker.js` for the worker app. Either way, run
+Or as a plain Coolify **Dockerfile** app instead of Compose (what you get
+if you connect the repo directly rather than pointing at the compose file)
+— same thing, just bring your own Redis (Upstash, etc.) via `REDIS_URL`
+instead of the Compose file's local Redis container. Either way, run
 `npx prisma migrate deploy` once against the production `DATABASE_URL`
 before the first deploy (Coolify's "Pre-deployment Command" hook works for
 this if you're not using the Compose `migrate` service).
+
+If search volume ever grows enough that scrape jobs start starving the
+HTTP event loop, split the worker back into its own process/service — swap
+`startSearchWorker()` out of `server.ts` and into its own entrypoint
+(`node dist/queues/worker.js`-style), deployed as a second Coolify service
+sharing the same `DATABASE_URL`/`REDIS_URL`. Nothing else changes.
 
 ## API surface
 

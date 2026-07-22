@@ -21,25 +21,14 @@ services:
     command: npx prisma migrate deploy
     env_file: .env
 
+  # Single service — server.ts starts the BullMQ search worker in-process
+  # alongside the HTTP server, so there's no separate worker service to run.
   api:
     build: .
     restart: unless-stopped
     command: node dist/server.js
     ports:
       - '4000:4000'
-    env_file: .env
-    environment:
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-
-  worker:
-    build: .
-    restart: unless-stopped
-    command: node dist/queues/worker.js
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379

@@ -1,8 +1,7 @@
 # Multi-stage build: compile TypeScript + generate the Prisma client in a
 # full node image, then ship only the production deps + compiled output.
-# The same final image serves both the API and the worker — Coolify (or
-# docker-compose) picks which process to run via CMD/command override, so
-# there's one image to build and deploy, not two.
+# server.ts starts the BullMQ search worker in-process alongside the HTTP
+# server — one process, one image, one Coolify service.
 
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -35,7 +34,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 4000
 
-# Default process is the API server. The worker service overrides this
-# (see docker-compose.yml / Coolify service command) with:
-#   node dist/queues/worker.js
 CMD ["node", "dist/server.js"]

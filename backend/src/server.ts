@@ -3,6 +3,7 @@ import { env } from './config/env';
 import { logger } from './lib/logger';
 import { prisma } from './lib/prisma';
 import { redis } from './lib/redis';
+import { startSearchWorker } from './queues/worker';
 
 async function main() {
   const app = createApp();
@@ -11,10 +12,12 @@ async function main() {
     logger.info(`ReachIQ backend listening on port ${env.PORT}`);
   });
 
+  const worker = startSearchWorker();
+
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully`);
     server.close();
-    await Promise.all([prisma.$disconnect(), redis.quit()]);
+    await Promise.all([worker.close(), prisma.$disconnect(), redis.quit()]);
     process.exit(0);
   };
 
