@@ -1,16 +1,16 @@
 import { logger } from '../../lib/logger';
 import { CompanySiteIngestionSource } from './ingestion/company-site.source';
 import { DirectoryIngestionSource } from './ingestion/directories/directory.source';
-import { GoogleMapsIngestionSource } from './ingestion/google-maps.source';
-import { GoogleSearchIngestionSource } from './ingestion/google-search.source';
+import { OverpassPlacesIngestionSource } from './ingestion/overpass-places.source';
+import { SearxngSearchIngestionSource } from './ingestion/searxng-search.source';
 import { ScrapedCandidate, ScrapeTarget } from './ingestion/ingestion-source.interface';
 
 export class IngestionOrchestrator {
   constructor(
     private readonly directories: DirectoryIngestionSource[],
-    private readonly googleMaps: GoogleMapsIngestionSource,
+    private readonly places: OverpassPlacesIngestionSource,
     private readonly companySite: CompanySiteIngestionSource,
-    private readonly googleSearch: GoogleSearchIngestionSource,
+    private readonly searchEngine: SearxngSearchIngestionSource,
   ) {}
 
   async *run(target: ScrapeTarget): AsyncGenerator<ScrapedCandidate[]> {
@@ -25,11 +25,11 @@ export class IngestionOrchestrator {
       }
     }
 
-    for await (const businesses of this.googleMaps.streamCandidates(target)) {
+    for await (const businesses of this.places.streamCandidates(target)) {
       yield* this.resolveStaffForEach(businesses);
     }
 
-    for await (const batch of this.googleSearch.streamCandidates(target)) {
+    for await (const batch of this.searchEngine.streamCandidates(target)) {
       yield batch;
     }
   }

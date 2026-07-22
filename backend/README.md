@@ -26,8 +26,8 @@ src/
     credits/                # credit wallet + reservation saga (reveal billing)
     suppression/             # suppression list + country compliance tiers
     discovery/
-      ingestion/              # IngestionSource interface + Google Search/Maps,
-                               # company-site, and directory scrapers
+      ingestion/              # IngestionSource interface + SearXNG search,
+                               # Overpass places, company-site, and directory sources
       ingestion-orchestrator.service.ts
       email-resolution/        # pattern-guess resolver + email verification
       search.service.ts        # persists scraped candidates as Contacts
@@ -104,14 +104,38 @@ All routes are mounted under `/api` and (except `/api/auth/*`) require `Authoriz
 
 This ports the architecture and working logic from the design doc's TypeScript
 snippets (pattern-guess algorithm, verification caching, credit reservation
-saga, directory crawl checkpointing, BYOK encryption) faithfully. Two pieces
-are intentionally left as documented seams rather than fully implemented,
-matching the design doc itself:
+saga, directory crawl checkpointing, BYOK encryption) faithfully.
 
-- **Headless-browser rendering** (`ProxiedHttpClient.fetchViaHeadlessBrowser`) —
-  needed for JS-rendered pages like Google Maps. Wire up Playwright/Puppeteer
-  here for your deployment target.
-- **Real proxy pool** (`ingestion/proxied-http-client.ts`) — ships with an
-  in-memory placeholder; swap in a residential proxy vendor before scraping
-  at any real volume (see `SYSTEM_DESIGN.md` Section 3.1 for the buy-vs-build
-  tradeoff against Google's official Search/Places APIs).
+**Search and places sourcing deliberately don't scrape Google.** Instead of
+`GoogleSearchIngestionSource`/`GoogleMapsIngestionSource` (the design doc's
+original approach — see `SYSTEM_DESIGN.md` Section 3.1 for that tradeoff),
+this uses:
+
+- **`SearxngSearchIngestionSource`** — queries a self-hosted [SearXNG](https://docs.searxng.org/)
+  instance instead of scraping Google's HTML directly. No proxy pool, no
+  CAPTCHA/block handling, no artificial delay — it's a plain JSON API call to
+  infra you run yourself.
+
+  **Setup requirement:** SearXNG disables its JSON API by default. In your
+  instance's `settings.yml`, add `json` under `search.formats`:
+  ```yaml
+  search:
+    formats:
+      - html
+      - json
+  ```
+  Restart the SearXNG container after changing this — without it, every
+  request from `SearxngSearchIngestionSource` gets a 403.
+
+- **`OverpassPlacesIngestionSource`** — queries the free, public
+  [Overpass API](https://overpass-api.de) (OpenStreetMap data) instead of
+  Google Maps, so no headless browser is needed at all (Maps' JS-rendered,
+  scroll-paginated SPA was the reason the original design needed
+  Playwright/Puppeteer here). Coverage is community-sourced, so it's weaker
+  than Google Maps for very new/small businesses — acceptable tradeoff for
+  zero cost, zero key, zero card.
+
+`ingestion/proxied-http-client.ts` (with its in-memory placeholder proxy
+pool) still backs `CompanySiteIngestionSource` and `DirectoryIngestionSource`,
+since those are still real HTML scraping against arbitrary third-party
+sites — swap in a real proxy vendor there before scraping at volume.

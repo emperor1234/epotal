@@ -11,7 +11,7 @@ export interface ScrapedCandidate {
   jobTitle?: string;
   companyName?: string;
   companyDomain?: string;
-  sourceType: 'google_search' | 'google_maps' | 'company_site' | 'directory';
+  sourceType: 'search_engine' | 'places' | 'company_site' | 'directory';
   sourceUrl: string;
 }
 

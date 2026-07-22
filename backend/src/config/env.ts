@@ -20,6 +20,12 @@ const schema = z.object({
   SCRAPE_DELAY_MIN_MS: z.coerce.number().default(1500),
   SCRAPE_DELAY_MAX_MS: z.coerce.number().default(4000),
 
+  // Self-hosted SearXNG instance (search step) — must have `json` enabled
+  // under `search.formats` in its settings.yml (disabled by default).
+  SEARXNG_URL: z.string().url(),
+  // Public Overpass API (places/business step) — free, no key needed.
+  OVERPASS_API_URL: z.string().url().default('https://overpass-api.de/api/interpreter'),
+
   REVEAL_CREDIT_COST: z.coerce.number().default(1),
 });
 

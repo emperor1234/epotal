@@ -2,9 +2,9 @@ import { CompanySiteIngestionSource } from './ingestion/company-site.source';
 import { DirectoryCrawlProgressService } from './ingestion/directories/directory-crawl-progress.service';
 import { DirectoryIngestionSource } from './ingestion/directories/directory.source';
 import { yellowPagesDefinition } from './ingestion/directories/yellow-pages.definition';
-import { GoogleMapsIngestionSource } from './ingestion/google-maps.source';
-import { GoogleSearchIngestionSource } from './ingestion/google-search.source';
+import { OverpassPlacesIngestionSource } from './ingestion/overpass-places.source';
 import { ProxiedHttpClient } from './ingestion/proxied-http-client';
+import { SearxngSearchIngestionSource } from './ingestion/searxng-search.source';
 import { IngestionOrchestrator } from './ingestion-orchestrator.service';
 
 export function createIngestionOrchestrator(): IngestionOrchestrator {
@@ -12,9 +12,9 @@ export function createIngestionOrchestrator(): IngestionOrchestrator {
   const progress = new DirectoryCrawlProgressService();
 
   const directories = [new DirectoryIngestionSource(yellowPagesDefinition, http, progress)];
-  const googleMaps = new GoogleMapsIngestionSource(http);
+  const places = new OverpassPlacesIngestionSource();
   const companySite = new CompanySiteIngestionSource(http);
-  const googleSearch = new GoogleSearchIngestionSource(http);
+  const searchEngine = new SearxngSearchIngestionSource();
 
-  return new IngestionOrchestrator(directories, googleMaps, companySite, googleSearch);
+  return new IngestionOrchestrator(directories, places, companySite, searchEngine);
 }

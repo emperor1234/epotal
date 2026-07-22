@@ -43,10 +43,10 @@ class InMemoryProxyPool implements ProxyPool {
 export class ProxiedHttpClient {
   constructor(private readonly proxyPool: ProxyPool = new InMemoryProxyPool()) {}
 
-  async fetch(url: string, opts: { renderJs?: boolean } = {}): Promise<string> {
+  async fetch(url: string): Promise<string> {
     const identity = await this.proxyPool.acquireIdentity();
     await this.politeDelay();
-    return opts.renderJs ? this.fetchViaHeadlessBrowser(url, identity) : this.fetchPlain(url, identity);
+    return this.fetchPlain(url, identity);
   }
 
   async rotateIdentity(): Promise<void> {
@@ -66,13 +66,5 @@ export class ProxiedHttpClient {
       logger.warn({ url, status: response.status }, 'Non-OK response from scrape target');
     }
     return response.text();
-  }
-
-  private async fetchViaHeadlessBrowser(url: string, _identity: ProxyIdentity): Promise<string> {
-    // JS-rendered pages (e.g. Google Maps' scroll-paginated SPA) need a real
-    // headless browser (Playwright/Puppeteer) wired up per deployment target —
-    // deliberately not bundled here to keep this service's footprint light.
-    // See SYSTEM_DESIGN.md Section 6.1 (GoogleMapsIngestionSource).
-    throw new Error(`renderJs fetch not implemented — wire up Playwright/Puppeteer for: ${url}`);
   }
 }
