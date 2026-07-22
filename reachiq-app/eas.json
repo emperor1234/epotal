@@ -21,7 +21,7 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://epotal.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://application.luckstrike.co.uk"
       }
     },
     "production": {
@@ -31,7 +31,7 @@
       },
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://epotal.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://application.luckstrike.co.uk"
       }
     }
   },
