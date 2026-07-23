@@ -29,7 +29,30 @@ export default function Root({ children }: PropsWithChildren) {
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').catch(() => {});
+                  navigator.serviceWorker.register('/sw.js').then((registration) => {
+                    // Installed/standalone PWAs don't always get the browser's
+                    // usual "check for a new SW on navigation" behavior the way
+                    // a regular tab does — check explicitly on load and every
+                    // time the app is foregrounded, so an installed app doesn't
+                    // sit on an old version indefinitely.
+                    registration.update().catch(() => {});
+                    document.addEventListener('visibilitychange', () => {
+                      if (document.visibilityState === 'visible') {
+                        registration.update().catch(() => {});
+                      }
+                    });
+                  }).catch(() => {});
+
+                  // Once a new service worker actually takes control, the page
+                  // is still running the old cached JS bundle in memory — a
+                  // reload is the only way to pick up the new one. Reload once,
+                  // not in a loop.
+                  let reloaded = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (reloaded) return;
+                    reloaded = true;
+                    window.location.reload();
+                  });
                 });
               }
             `,

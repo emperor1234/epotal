@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, typography } from '../theme/tokens';
 
@@ -68,5 +68,9 @@ const styles = StyleSheet.create({
     ...typography.bodyLg,
     color: colors.onSurface,
     fontSize: 15,
+    // Web renders TextInput as a real <input>, and browsers draw their own
+    // default focus outline on top of it — a black ring on top of (and
+    // uglier than) the blue border `fieldFocused` already applies above.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
 });
