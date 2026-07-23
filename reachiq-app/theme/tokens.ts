@@ -1,27 +1,27 @@
 // Design tokens ported from stitch_direct_outreach_lead_finder/reachiq/DESIGN.md
 
 export const colors = {
-  surface: '#f7f9fb',
+  surface: '#f8fafc',
   surfaceDim: '#d8dadc',
   surfaceBright: '#f7f9fb',
   surfaceContainerLowest: '#ffffff',
-  surfaceContainerLow: '#f2f4f6',
-  surfaceContainer: '#eceef0',
-  surfaceContainerHigh: '#e6e8ea',
+  surfaceContainerLow: '#f1f5f9',
+  surfaceContainer: '#eaf0f6',
+  surfaceContainerHigh: '#dfe7f0',
   surfaceContainerHighest: '#e0e3e5',
   onSurface: '#191c1e',
   onSurfaceVariant: '#45464d',
   inverseSurface: '#2d3133',
   inverseOnSurface: '#eff1f3',
-  outline: '#76777d',
-  outlineVariant: '#c6c6cd',
+  outline: '#64748b',
+  outlineVariant: '#dbe3ec',
 
-  primary: '#000000',
+  primary: '#0b1220',
   onPrimary: '#ffffff',
-  primaryContainer: '#131b2e',
-  onPrimaryContainer: '#7c839b',
+  primaryContainer: '#e8f0ff',
+  onPrimaryContainer: '#164e9b',
 
-  secondary: '#0058be',
+  secondary: '#2563eb',
   onSecondary: '#ffffff',
   secondaryContainer: '#2170e4',
   onSecondaryContainer: '#fefcff',
@@ -36,12 +36,12 @@ export const colors = {
   errorContainer: '#ffdad6',
   onErrorContainer: '#93000a',
 
-  background: '#f7f9fb',
+  background: '#f4f7fb',
   onBackground: '#191c1e',
   surfaceVariant: '#e0e3e5',
 
   // Product accents (from DESIGN.md prose section)
-  deepNavy: '#0F172A',
+  deepNavy: '#0b1220',
   electricBlue: '#3B82F6',
   emerald: '#10B981',
   amber: '#F59E0B',
@@ -61,18 +61,18 @@ export const typography = {
 } as const;
 
 export const radius = {
-  sm: 2,
-  DEFAULT: 4,
-  md: 6,
-  lg: 8,
-  xl: 12,
+  sm: 6,
+  DEFAULT: 8,
+  md: 10,
+  lg: 14,
+  xl: 20,
   full: 9999,
 } as const;
 
 export const spacing = {
-  containerMargin: 16,
+  containerMargin: 20,
   stackGap: 12,
-  cardPadding: 16,
+  cardPadding: 20,
   elementSpacing: 8,
   sectionGap: 24,
 } as const;

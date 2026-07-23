@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
@@ -11,6 +12,7 @@ import * as aiApi from '../../data/aiApi';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { user, wallet, refreshWallet, signOut, withAuth } = useAuth();
 
   const [hasKey, setHasKey] = useState<boolean | null>(null);
@@ -118,15 +120,11 @@ export default function ProfileScreen() {
 
         <Card style={[styles.section, { padding: 0, overflow: 'hidden' }]}>
           <Text style={styles.complianceHeader}>COMPLIANCE & PRIVACY</Text>
-          <View style={styles.linkRow}>
+          <Pressable style={styles.linkRow} onPress={() => router.push('/suppression')}>
             <Ionicons name="ban-outline" size={18} color={colors.onSurface} />
             <Text style={styles.linkText}>Suppression List</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.linkRow}>
-            <Ionicons name="shield-outline" size={18} color={colors.onSurface} />
-            <Text style={styles.linkText}>Privacy Policy</Text>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.outline} />
+          </Pressable>
         </Card>
 
         <Pressable style={styles.logoutRow} onPress={signOut}>

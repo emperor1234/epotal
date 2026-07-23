@@ -19,6 +19,18 @@ export default function SignUpScreen() {
 
   const handleCreate = async () => {
     setError(null);
+    if (!name.trim()) {
+      setError('Enter your full name.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Enter your work email.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Use at least 8 characters for your password.');
+      return;
+    }
     setLoading(true);
     try {
       // Full name is UI-only for now — the backend's User model doesn't
@@ -60,14 +72,6 @@ export default function SignUpScreen() {
 
           <Button label="Create Account" variant="secondary" icon="arrow-forward" iconPosition="right" loading={loading} onPress={handleCreate} />
 
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>OR SIGN UP WITH</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <Button label="Sign up with GitHub" variant="dark" icon="logo-github" />
-
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Already have an account? </Text>
             <Link href="/" asChild>
@@ -88,7 +92,7 @@ export default function SignUpScreen() {
         </View>
       </View>
 
-      <Text style={styles.copyright}>© 2024 ReachIQ Intelligence Layer. Enterprise-Grade Security.</Text>
+      <Text style={styles.copyright}>© 2026 ReachIQ · Secure contact intelligence</Text>
     </ScrollView>
   );
 }

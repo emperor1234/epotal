@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -60,6 +62,13 @@ export default function ContactDetailScreen() {
     } finally {
       setRevealing(false);
     }
+  };
+
+  const handleCopy = async () => {
+    if (!reveal) return;
+    await Clipboard.setStringAsync(reveal.email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   };
 
   if (loading) {
@@ -147,8 +156,14 @@ export default function ContactDetailScreen() {
                 </View>
               </View>
               <View style={styles.actionRow}>
-                <Button label="Email" variant="secondary" icon="send" style={{ flex: 1 }} />
-                <Pressable style={styles.iconButton} onPress={() => setCopied(true)}>
+                <Button
+                  label="Email"
+                  variant="secondary"
+                  icon="send"
+                  style={{ flex: 1 }}
+                  onPress={() => void Linking.openURL(`mailto:${reveal.email}`)}
+                />
+                <Pressable accessibilityRole="button" accessibilityLabel="Copy email address" style={styles.iconButton} onPress={handleCopy}>
                   <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={colors.onSurface} />
                 </Pressable>
               </View>
@@ -230,7 +245,7 @@ const styles = StyleSheet.create({
   creditText: { color: colors.inverseOnSurface, fontSize: 12, fontWeight: '700' },
   content: { paddingBottom: 40 },
   heroCard: { backgroundColor: colors.surfaceContainerLowest },
-  heroBanner: { height: 90, backgroundColor: colors.secondary },
+  heroBanner: { height: 112, backgroundColor: colors.deepNavy },
   heroBody: { alignItems: 'center', paddingBottom: 20, marginTop: -48 },
   avatarWrap: { position: 'relative' },
   avatar: {

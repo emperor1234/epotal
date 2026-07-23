@@ -50,8 +50,11 @@ cp .env.example .env
 
 npm run prisma:migrate   # creates tables
 npm run dev               # API server on :4000
-npm run worker             # separate process: consumes the search queue
 ```
+
+`GET /health` is a process liveness check. `GET /ready` additionally verifies
+PostgreSQL and Redis and returns `503` when either dependency is unavailable.
+Use `/ready` for deployment readiness checks and `/health` for liveness checks.
 
 ## Deploying on Coolify
 
@@ -68,6 +71,10 @@ see `server.ts`) together — this is also directly usable as a Coolify
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # ENCRYPTION_KEY_BASE64
    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"      # JWT_*_SECRET (run twice)
    ```
+   When using a Coolify PostgreSQL resource, set both `DATABASE_URL` and
+   `DIRECT_URL` to its internal connection URL. They can be identical unless
+   `DATABASE_URL` goes through a pooler. The migration service uses
+   `DIRECT_URL`, while the running API uses `DATABASE_URL`.
 3. Deploy. Coolify builds the image once, starts `redis`, runs `migrate` to completion, then starts `api`. Redis data persists via the named volume.
 4. Point your reverse proxy / domain at the `api` service's port `4000`.
 

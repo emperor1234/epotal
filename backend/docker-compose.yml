@@ -1,6 +1,7 @@
 services:
-  # No local Postgres service — using Neon (or another hosted Postgres) via
-  # DATABASE_URL/DIRECT_URL in .env, so nothing to run/persist here.
+  # PostgreSQL is provided as a separate Coolify resource. Both DATABASE_URL
+  # and DIRECT_URL must point to that resource; they may use the same URL when
+  # the server is not behind a transaction pooler.
 
   redis:
     image: redis:7-alpine

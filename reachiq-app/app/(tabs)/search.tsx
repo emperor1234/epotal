@@ -68,7 +68,7 @@ export default function SearchScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.headerCard}>
           <Text style={styles.title}>Professional Search</Text>
-          <Text style={styles.subtitle}>Find verified B2B contacts across 200M+ profiles with precision filters.</Text>
+          <Text style={styles.subtitle}>Build a focused prospect list using industry, location, seniority, and intent keywords.</Text>
         </Card>
 
         <View style={styles.section}>
@@ -147,7 +147,7 @@ export default function SearchScreen() {
 
         <View style={styles.footerRow}>
           <View style={styles.footerItem}>
-            <Text style={styles.footerText}>Verified Records Only</Text>
+            <Text style={styles.footerText}>Compliance-aware sourcing</Text>
           </View>
           <View style={styles.footerItem}>
             <Ionicons name="flash" size={14} color={colors.secondary} />

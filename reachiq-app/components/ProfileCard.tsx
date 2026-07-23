@@ -1,20 +1,34 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiRequestError } from '../config/api';
 import { useAuth } from '../context/auth';
 import * as contactsApi from '../data/contactsApi';
 import { ApiContact, ApiReveal } from '../data/api-types';
+import * as savedContacts from '../data/savedContacts';
 import { colors, radius, spacing, typography } from '../theme/tokens';
 import { Badge } from './Badge';
 
-export function ProfileCard({ contact, onRevealed }: { contact: ApiContact; onRevealed?: (reveal: ApiReveal) => void }) {
+export function ProfileCard({
+  contact,
+  onRevealed,
+  onSavedChange,
+}: {
+  contact: ApiContact;
+  onRevealed?: (reveal: ApiReveal) => void;
+  onSavedChange?: (saved: boolean) => void;
+}) {
   const router = useRouter();
   const { withAuth, refreshWallet } = useAuth();
   const [reveal, setReveal] = useState<ApiReveal | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    savedContacts.isSaved(contact.id).then(setSaved);
+  }, [contact.id]);
 
   const confidenceColor = reveal?.verificationStatus === 'valid' ? colors.emerald : colors.amber;
   const filledBars = reveal ? Math.max(1, Math.round(reveal.confidence * 4)) : 0;
@@ -32,6 +46,12 @@ export function ProfileCard({ contact, onRevealed }: { contact: ApiContact; onRe
     } finally {
       setRevealing(false);
     }
+  };
+
+  const handleSave = async () => {
+    const next = await savedContacts.toggleSaved(contact);
+    setSaved(next);
+    onSavedChange?.(next);
   };
 
   return (
@@ -114,8 +134,17 @@ export function ProfileCard({ contact, onRevealed }: { contact: ApiContact; onRe
           </View>
         </View>
         <View style={styles.footerIcons}>
-          <Ionicons name="bookmark-outline" size={18} color={colors.outline} />
-          <Ionicons name="share-social-outline" size={18} color={colors.outline} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={saved ? 'Remove saved contact' : 'Save contact'}
+            hitSlop={10}
+            onPress={(event) => {
+              event.stopPropagation();
+              void handleSave();
+            }}
+          >
+            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={19} color={saved ? colors.secondary : colors.outline} />
+          </Pressable>
         </View>
       </View>
     </Pressable>

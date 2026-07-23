@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Button } from '../components/Button';
 import { ProfileCard } from '../components/ProfileCard';
 import { TopBar } from '../components/TopBar';
 import { ApiRequestError } from '../config/api';
@@ -57,6 +58,7 @@ export default function SearchResultsScreen() {
   }, [fetchResults]);
 
   const isSearching = status === 'queued' || status === 'running';
+  const failed = status === 'failed';
 
   return (
     <View style={styles.screen}>
@@ -70,9 +72,16 @@ export default function SearchResultsScreen() {
         {isSearching && <ActivityIndicator size="small" color={colors.secondary} />}
       </View>
 
-      {error && (
+      {(error || failed) && (
         <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.errorCopy}>
+            <Ionicons name="alert-circle-outline" size={20} color={colors.error} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.errorTitle}>Search could not be completed</Text>
+              <Text style={styles.errorText}>{error ?? 'The data sources did not complete this search. Try again or adjust your filters.'}</Text>
+            </View>
+          </View>
+          <Button label="Try again" variant="outline" onPress={() => void fetchResults()} />
         </View>
       )}
 
@@ -83,7 +92,7 @@ export default function SearchResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: spacing.elementSpacing }} />}
         renderItem={({ item }) => <ProfileCard contact={item} />}
         ListEmptyComponent={
-          !isSearching && !error ? (
+          !isSearching && !error && !failed ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={28} color={colors.outline} />
               <Text style={styles.emptyText}>No contacts found for these filters yet.</Text>
@@ -120,8 +129,10 @@ const styles = StyleSheet.create({
     borderColor: colors.outlineVariant,
   },
   filterChipText: { ...typography.labelMd, color: colors.onSurface, fontWeight: '600' },
-  errorBox: { paddingHorizontal: spacing.containerMargin, paddingTop: 12 },
-  errorText: { ...typography.labelMd, color: colors.error, fontWeight: '600' },
+  errorBox: { margin: spacing.containerMargin, padding: 16, gap: 14, borderRadius: radius.lg, backgroundColor: colors.errorContainer },
+  errorCopy: { flexDirection: 'row', gap: 10 },
+  errorTitle: { ...typography.bodyMd, color: colors.onErrorContainer, fontWeight: '800' },
+  errorText: { ...typography.labelMd, color: colors.onErrorContainer, marginTop: 2 },
   listContent: { padding: spacing.containerMargin, paddingBottom: 40, flexGrow: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingTop: 60 },
   emptyText: { ...typography.bodyMd, color: colors.outline, textAlign: 'center' },

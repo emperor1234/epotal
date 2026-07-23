@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
@@ -15,9 +16,14 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { width } = useWindowDimensions();
 
   const handleSignIn = async () => {
     setError(null);
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.');
+      return;
+    }
     setLoading(true);
     try {
       await signIn(email.trim(), password);
@@ -30,15 +36,23 @@ export default function SignInScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <LinearGradient colors={['#0b1220', '#172554']} style={styles.hero}>
+        <View style={styles.logoMark}><Ionicons name="sparkles" size={20} color="#ffffff" /></View>
+        <Text style={styles.heroEyebrow}>B2B INTELLIGENCE, REFINED</Text>
+        <Text style={styles.heroTitle}>Find the right people.{'\n'}Reach them with confidence.</Text>
+        <Text style={styles.heroText}>Verified contact data, company context, and AI-assisted research in one focused workspace.</Text>
+      </LinearGradient>
+      <View style={[styles.authColumn, width >= 900 && styles.authColumnWide]}>
       <View style={styles.header}>
         <Ionicons name="shield-checkmark" size={22} color={colors.secondary} />
         <Text style={styles.brand}>ReachIQ</Text>
       </View>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Access your B2B intelligence layer</Text>
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>Sign in to continue to your prospecting workspace.</Text>
 
         <View style={styles.form}>
           <Input
@@ -53,7 +67,6 @@ export default function SignInScreen() {
           <View>
             <View style={styles.passwordLabelRow}>
               <Text style={styles.fieldLabel}>Password</Text>
-              <Text style={styles.forgot}>Forgot Password?</Text>
             </View>
             <Input icon="lock-closed-outline" secure placeholder="••••••••" value={password} onChangeText={setPassword} />
           </View>
@@ -61,14 +74,6 @@ export default function SignInScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button label="Sign In" variant="secondary" icon="arrow-forward" iconPosition="right" loading={loading} onPress={handleSignIn} />
-
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <Button label="Sign in with GitHub" variant="dark" icon="logo-github" />
 
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Don't have an account? </Text>
@@ -82,7 +87,7 @@ export default function SignInScreen() {
       <View style={styles.trustRow}>
         <View style={styles.trustItem}>
           <Ionicons name="shield-checkmark-outline" size={14} color={colors.outline} />
-          <Text style={styles.trustText}>SOC2 TYPE II</Text>
+          <Text style={styles.trustText}>SECURE ACCESS</Text>
         </View>
         <View style={styles.trustItem}>
           <Ionicons name="lock-closed-outline" size={14} color={colors.outline} />
@@ -90,17 +95,26 @@ export default function SignInScreen() {
         </View>
       </View>
 
-      <Text style={styles.copyright}>© 2024 ReachIQ Intelligence Layer. Enterprise-Grade Security.</Text>
+      <Text style={styles.copyright}>© 2026 ReachIQ · Secure contact intelligence</Text>
+      </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.containerMargin, paddingTop: 60, paddingBottom: 40, gap: spacing.sectionGap },
+  content: { flexGrow: 1, paddingBottom: 40 },
+  hero: { paddingHorizontal: 28, paddingTop: 64, paddingBottom: 48, gap: 14 },
+  logoMark: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
+  heroEyebrow: { ...typography.labelSm, color: '#93c5fd', fontWeight: '800', letterSpacing: 1.2 },
+  heroTitle: { fontSize: 34, lineHeight: 41, letterSpacing: -1, fontWeight: '800', color: '#ffffff', maxWidth: 620 },
+  heroText: { ...typography.bodyLg, color: '#cbd5e1', maxWidth: 560 },
+  authColumn: { padding: spacing.containerMargin, gap: spacing.sectionGap, width: '100%', maxWidth: 520, alignSelf: 'center', marginTop: 12 },
+  authColumnWide: { marginTop: 28 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
   brand: { ...typography.headlineMd, fontWeight: '800', color: colors.primary },
-  card: { gap: 4 },
+  card: { gap: 4, padding: 24 },
   title: { ...typography.headlineLg, textAlign: 'center', color: colors.primary },
   subtitle: { ...typography.bodyMd, textAlign: 'center', color: colors.onSurfaceVariant, marginTop: 4 },
   form: { gap: 16, marginTop: 20 },

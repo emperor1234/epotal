@@ -7,6 +7,19 @@ import pinoHttp from 'pino-http';
 import { logger } from './lib/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/index';
+import { prisma } from './lib/prisma';
+import { redis } from './lib/redis';
+
+// Serverless Postgres can take several seconds to resume after idling.
+// Keep this above the normal cold-start window so readiness does not flap.
+const READINESS_TIMEOUT_MS = 10_000;
+
+async function withTimeout<T>(operation: Promise<T>): Promise<T> {
+  return Promise.race([
+    operation,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Dependency check timed out')), READINESS_TIMEOUT_MS)),
+  ]);
+}
 
 export function createApp() {
   const app = express();
@@ -30,6 +43,18 @@ export function createApp() {
   );
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.get('/ready', async (_req, res) => {
+    const checks = await Promise.allSettled([
+      withTimeout(prisma.$queryRaw`SELECT 1`),
+      withTimeout(redis.ping()),
+    ]);
+    const dependencies = {
+      database: checks[0].status === 'fulfilled' ? 'ok' : 'unavailable',
+      redis: checks[1].status === 'fulfilled' ? 'ok' : 'unavailable',
+    };
+    const ready = Object.values(dependencies).every((status) => status === 'ok');
+    res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready', dependencies });
+  });
 
   app.use('/api', apiRouter);
 

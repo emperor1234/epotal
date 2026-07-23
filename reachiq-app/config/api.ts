@@ -1,4 +1,5 @@
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+const REQUEST_TIMEOUT_MS = 20_000;
 
 export class ApiRequestError extends Error {
   status: number;
@@ -13,15 +14,26 @@ export class ApiRequestError extends Error {
 
 async function request<T>(path: string, options: RequestInit & { accessToken?: string } = {}): Promise<T> {
   const { accessToken, headers, ...rest } = options;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
 
-  const response = await fetch(`${API_URL}/api${path}`, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...headers,
-    },
-  });
+  try {
+    response = await fetch(`${API_URL.replace(/\/$/, '')}/api${path}`, {
+      ...rest,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...headers,
+      },
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    throw new ApiRequestError(0, timedOut ? 'The server took too long to respond.' : 'Unable to connect. Check your connection and try again.');
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (response.status === 204) return undefined as T;
 
