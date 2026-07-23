@@ -45,7 +45,10 @@ export function createApp() {
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   app.get('/ready', async (_req, res) => {
     const checks = await Promise.allSettled([
-      withTimeout(prisma.$queryRaw`SELECT 1`),
+      // A bare SELECT 1 only proves transport/authentication. Query an actual
+      // application model so a fresh database without migrations is not
+      // incorrectly reported as ready.
+      withTimeout(prisma.user.count()),
       withTimeout(redis.ping()),
     ]);
     const dependencies = {
