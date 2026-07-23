@@ -19,7 +19,7 @@ export default function SearchResultsScreen() {
   const [status, setStatus] = useState<ApiSearchQuery['status']>('queued');
   const [contacts, setContacts] = useState<ApiContact[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResults = useCallback(async () => {
     if (!searchId) return;
@@ -27,20 +27,32 @@ export default function SearchResultsScreen() {
       const result = await withAuth((token) => searchesApi.getSearchResults(searchId, token));
       setStatus(result.status);
       setContacts(result.contacts);
-      if (result.status === 'completed' || result.status === 'failed') {
-        if (pollRef.current) clearInterval(pollRef.current);
-      }
+      return result.status === 'completed' || result.status === 'failed';
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Could not load results.');
-      if (pollRef.current) clearInterval(pollRef.current);
+      return true; // stop polling on error rather than retry-storm a failing endpoint
     }
   }, [searchId, withAuth]);
 
   useEffect(() => {
-    fetchResults();
-    pollRef.current = setInterval(fetchResults, POLL_INTERVAL_MS);
+    let cancelled = false;
+
+    // Self-scheduling loop rather than setInterval: the next poll is only
+    // queued after the current one settles, so a slow/stalled request
+    // can't cause requests to stack up faster than the server (or the
+    // browser's per-domain connection limit) can handle.
+    const runPoll = async () => {
+      const shouldStop = await fetchResults();
+      if (!cancelled && !shouldStop) {
+        pollRef.current = setTimeout(runPoll, POLL_INTERVAL_MS);
+      }
+    };
+
+    runPoll();
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      cancelled = true;
+      if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, [fetchResults]);
 
