@@ -54,10 +54,15 @@ export class OverpassPlacesIngestionSource implements IngestionSource {
   }
 
   private async query(overpassQl: string): Promise<OverpassElement[]> {
+    // The query itself is bounded by Overpass's own [timeout:25] directive,
+    // but that only bounds server-side execution — an unreachable endpoint
+    // or a stalled connection has no client-side bound without this, and
+    // would hang the whole search job indefinitely (sources run sequentially).
     const response = await fetch(env.OVERPASS_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `data=${encodeURIComponent(overpassQl)}`,
+      signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) {
       throw new Error(`Overpass responded ${response.status}`);

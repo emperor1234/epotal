@@ -59,8 +59,13 @@ export class ProxiedHttpClient {
   }
 
   private async fetchPlain(url: string, identity: ProxyIdentity): Promise<string> {
+    // Arbitrary third-party sites (company staff pages, directory listings)
+    // are the least trustworthy fetch target here — no timeout means one
+    // slow/unresponsive site hangs the whole search job indefinitely, since
+    // sources run sequentially in the orchestrator.
     const response = await fetch(url, {
       headers: { 'User-Agent': identity.userAgent },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       logger.warn({ url, status: response.status }, 'Non-OK response from scrape target');

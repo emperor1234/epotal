@@ -56,9 +56,15 @@ export class SearxngSearchIngestionSource implements IngestionSource {
     url.searchParams.set('format', 'json');
     url.searchParams.set('pageno', String(page));
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      logger.warn({ query, page, status: response.status }, 'SearXNG request failed');
+    // No timeout here means an unreachable/stalled SearXNG instance hangs
+    // this fetch forever — and since sources run sequentially in the
+    // orchestrator, that hangs the entire search job indefinitely.
+    const response = await fetch(url.toString(), { signal: AbortSignal.timeout(15_000) }).catch((err) => {
+      logger.warn({ query, page, err }, 'SearXNG request failed or timed out');
+      return null;
+    });
+    if (!response || !response.ok) {
+      if (response) logger.warn({ query, page, status: response.status }, 'SearXNG request failed');
       return [];
     }
 
