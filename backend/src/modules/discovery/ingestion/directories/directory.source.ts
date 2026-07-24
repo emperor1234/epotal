@@ -22,15 +22,29 @@ export class DirectoryIngestionSource implements IngestionSource {
 
     let page = await this.progress.getResumePage(key); // resumes mid-crawl after a restart
     let consecutiveEmptyPages = 0;
+    const MAX_BLOCK_RETRIES = 3;
 
     while (consecutiveEmptyPages < 2) {
       const url = this.definition.buildListingUrl({ industrySlug, locationSlug, page });
-      const html = await this.http.fetch(url);
+
+      let html = '';
+      let blockedRetries = 0;
+      while (blockedRetries <= MAX_BLOCK_RETRIES) {
+        html = await this.http.fetch(url);
+        if (!this.looksBlocked(html)) break;
+        blockedRetries += 1;
+        logger.warn({ directory: this.definition.id, page, attempt: blockedRetries }, 'Blocked — rotating identity');
+        await this.http.rotateIdentity();
+      }
 
       if (this.looksBlocked(html)) {
-        logger.warn({ directory: this.definition.id, page }, 'Blocked — rotating identity');
-        await this.http.rotateIdentity();
-        continue; // retry the same page under a new identity, don't advance the cursor
+        // The placeholder proxy pool has no real IP rotation (see
+        // proxied-http-client.ts) — against a site with real bot detection,
+        // retrying just gets blocked again forever. Give up on this
+        // directory entirely rather than loop indefinitely; a real proxy
+        // vendor is what actually fixes this, not more retries.
+        logger.error({ directory: this.definition.id, page }, 'Still blocked after max retries — abandoning directory crawl');
+        break;
       }
 
       const listings = this.definition.extractListings(html);
