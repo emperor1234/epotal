@@ -14,9 +14,17 @@ export const searchQueue = new Queue<SearchJobData>(SEARCH_QUEUE_NAME, { connect
 
 export async function enqueueSearchJob(data: SearchJobData) {
   return searchQueue.add('run-search', data, {
+    jobId: data.searchQueryId,
     attempts: 2,
     backoff: { type: 'exponential', delay: 5000 },
     removeOnComplete: { age: 3600 },
     removeOnFail: { age: 86_400 },
   });
+}
+
+export async function removePendingSearchJob(searchQueryId: string): Promise<void> {
+  const job = await searchQueue.getJob(searchQueryId);
+  if (!job) return;
+  const state = await job.getState();
+  if (state !== 'active') await job.remove().catch(() => undefined);
 }

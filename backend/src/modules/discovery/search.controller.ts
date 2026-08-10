@@ -4,7 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../lib/errors';
 import { requireAuth } from '../../middleware/requireAuth';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { enqueueSearchJob } from '../../queues/search.queue';
+import { enqueueSearchJob, removePendingSearchJob } from '../../queues/search.queue';
 import { createSearchQuery } from './search.service';
 
 export const searchRouter = Router();
@@ -34,6 +34,22 @@ searchRouter.get(
     const searchQuery = await prisma.searchQuery.findUnique({ where: { id: String(req.params.id) } });
     if (!searchQuery || searchQuery.userId !== req.userId) throw ApiError.notFound('Search not found');
     res.json({ searchQuery });
+  }),
+);
+
+searchRouter.post(
+  '/:id/cancel',
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id);
+    const searchQuery = await prisma.searchQuery.findUnique({ where: { id } });
+    if (!searchQuery || searchQuery.userId !== req.userId) throw ApiError.notFound('Search not found');
+
+    if (searchQuery.status === 'queued' || searchQuery.status === 'running') {
+      await prisma.searchQuery.update({ where: { id }, data: { status: 'cancelled' } });
+      await removePendingSearchJob(id);
+    }
+
+    res.json({ status: searchQuery.status === 'queued' || searchQuery.status === 'running' ? 'cancelled' : searchQuery.status });
   }),
 );
 

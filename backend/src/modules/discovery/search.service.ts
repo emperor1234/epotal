@@ -15,13 +15,18 @@ export async function createSearchQuery(userId: string, target: ScrapeTarget) {
 // sources with multi-second-per-page latency, so it never runs inline on
 // an HTTP request.
 export async function runSearch(searchQueryId: string, target: ScrapeTarget): Promise<number> {
-  await prisma.searchQuery.update({ where: { id: searchQueryId }, data: { status: 'running' } });
+  const started = await prisma.searchQuery.updateMany({
+    where: { id: searchQueryId, status: 'queued' },
+    data: { status: 'running' },
+  });
+  if (started.count === 0) return 0; // cancelled while waiting in the queue
 
   const orchestrator = createIngestionOrchestrator();
   let persisted = 0;
 
   try {
     for await (const batch of orchestrator.run(target)) {
+      if (await searchWasCancelled(searchQueryId)) return persisted;
       for (const candidate of batch) {
         if (!candidate.fullName) continue; // business-only record with no staff resolved yet
         const linked = await persistCandidate(searchQueryId, candidate, target);
@@ -29,16 +34,21 @@ export async function runSearch(searchQueryId: string, target: ScrapeTarget): Pr
       }
     }
 
-    await prisma.searchQuery.update({
-      where: { id: searchQueryId },
+    await prisma.searchQuery.updateMany({
+      where: { id: searchQueryId, status: { not: 'cancelled' } },
       data: { status: 'completed', resultCount: persisted },
     });
   } catch (err) {
-    await prisma.searchQuery.update({ where: { id: searchQueryId }, data: { status: 'failed' } });
+    await prisma.searchQuery.updateMany({ where: { id: searchQueryId, status: { not: 'cancelled' } }, data: { status: 'failed' } });
     throw err;
   }
 
   return persisted;
+}
+
+async function searchWasCancelled(searchQueryId: string): Promise<boolean> {
+  const search = await prisma.searchQuery.findUnique({ where: { id: searchQueryId }, select: { status: true } });
+  return search?.status === 'cancelled';
 }
 
 async function persistCandidate(searchQueryId: string, candidate: ScrapedCandidate, target: ScrapeTarget): Promise<boolean> {

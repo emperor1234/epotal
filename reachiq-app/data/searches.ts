@@ -20,3 +20,7 @@ export function getSearch(id: string, token: string) {
 export function getSearchResults(id: string, token: string) {
   return api.get<{ status: ApiSearchQuery['status']; contacts: ApiContact[] }>(`/searches/${id}/results`, token);
 }
+
+export function cancelSearch(id: string, token: string) {
+  return api.post<{ status: ApiSearchQuery['status'] }>(`/searches/${id}/cancel`, undefined, token);
+}

@@ -20,7 +20,9 @@ export default function SearchResultsScreen() {
   const [status, setStatus] = useState<ApiSearchQuery['status']>('queued');
   const [contacts, setContacts] = useState<ApiContact[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [stopping, setStopping] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopRequestedRef = useRef(false);
 
   const fetchResults = useCallback(async () => {
     if (!searchId) return;
@@ -29,12 +31,29 @@ export default function SearchResultsScreen() {
       const result = await withAuth((token) => searchesApi.getSearchResults(searchId, token));
       setStatus(result.status);
       setContacts(result.contacts);
-      return result.status === 'completed' || result.status === 'failed';
+      return result.status === 'completed' || result.status === 'failed' || result.status === 'cancelled';
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Could not load results.');
       return true; // stop polling on error rather than retry-storm a failing endpoint
     }
   }, [searchId, withAuth]);
+
+  const stopSearch = useCallback(async () => {
+    if (!searchId || stopping) return;
+    setStopping(true);
+    setError(null);
+    stopRequestedRef.current = true;
+    try {
+      await withAuth((token) => searchesApi.cancelSearch(searchId, token));
+      if (pollRef.current) clearTimeout(pollRef.current);
+      setStatus('cancelled');
+    } catch (err) {
+      stopRequestedRef.current = false;
+      setError(err instanceof ApiRequestError ? err.message : 'Could not stop this search.');
+    } finally {
+      setStopping(false);
+    }
+  }, [searchId, stopping, withAuth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +64,7 @@ export default function SearchResultsScreen() {
     // browser's per-domain connection limit) can handle.
     const runPoll = async () => {
       const shouldStop = await fetchResults();
-      if (!cancelled && !shouldStop) {
+      if (!cancelled && !stopRequestedRef.current && !shouldStop) {
         pollRef.current = setTimeout(runPoll, POLL_INTERVAL_MS);
       }
     };
@@ -60,6 +79,7 @@ export default function SearchResultsScreen() {
 
   const isSearching = status === 'queued' || status === 'running';
   const failed = status === 'failed';
+  const cancelled = status === 'cancelled';
 
   return (
     <View style={styles.screen}>
@@ -67,10 +87,10 @@ export default function SearchResultsScreen() {
 
       <View style={styles.controlBar}>
         <View style={styles.statusCopy}>
-          <Text style={styles.statusTitle}>{isSearching ? 'Searching public sources' : failed ? 'Search stopped' : `${contacts.length} prospects found`}</Text>
-          <Text style={styles.statusSubtitle}>{isSearching ? 'New matches will appear here as they are found.' : 'Review, save, or reveal the contacts below.'}</Text>
+          <Text style={styles.statusTitle}>{isSearching ? 'Searching public sources' : failed ? 'Search failed' : cancelled ? 'Search stopped' : `${contacts.length} prospects found`}</Text>
+          <Text style={styles.statusSubtitle}>{isSearching ? 'New matches will appear here as they are found.' : cancelled ? `${contacts.length} matches found before stopping.` : 'Review, save, or reveal the contacts below.'}</Text>
         </View>
-        {isSearching && <View style={styles.spinner}><ActivityIndicator size="small" color={colors.secondary} /></View>}
+        {isSearching && <View style={styles.searchActions}><View style={styles.spinner}><ActivityIndicator size="small" color={colors.secondary} /></View><Button label="Stop" variant="outline" loading={stopping} onPress={() => void stopSearch()} style={styles.stopButton} /></View>}
       </View>
 
       {(error || failed) && (
@@ -93,7 +113,7 @@ export default function SearchResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: spacing.elementSpacing }} />}
         renderItem={({ item }) => <ProfileCard contact={item} />}
         ListEmptyComponent={
-          !isSearching && !error && !failed ? (
+          !isSearching && !error && !failed && !cancelled ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={28} color={colors.outline} />
               <Text style={styles.emptyTitle}>No matches yet</Text>
@@ -123,6 +143,8 @@ const styles = StyleSheet.create({
   statusTitle: { ...typography.bodyLg, color: colors.primary, fontWeight: '800' },
   statusSubtitle: { ...typography.labelMd, color: colors.outline, fontWeight: '400' },
   spinner: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  searchActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stopButton: { minHeight: 36, paddingVertical: 6, paddingHorizontal: 12 },
   errorBox: { margin: spacing.containerMargin, padding: 16, gap: 14, borderRadius: radius.lg, backgroundColor: colors.errorContainer },
   errorCopy: { flexDirection: 'row', gap: 10 },
   errorTitle: { ...typography.bodyMd, color: colors.onErrorContainer, fontWeight: '800' },

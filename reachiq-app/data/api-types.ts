@@ -38,7 +38,7 @@ export type ApiSearchQuery = {
   id: string;
   userId: string;
   filters: unknown;
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   resultCount: number;
   createdAt: string;
 };
