@@ -17,6 +17,7 @@ export default function TabsLayout() {
           paddingBottom: 7,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen

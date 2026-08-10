@@ -24,8 +24,8 @@ export async function runSearch(searchQueryId: string, target: ScrapeTarget): Pr
     for await (const batch of orchestrator.run(target)) {
       for (const candidate of batch) {
         if (!candidate.fullName) continue; // business-only record with no staff resolved yet
-        await persistCandidate(candidate, target);
-        persisted += 1;
+        const linked = await persistCandidate(searchQueryId, candidate, target);
+        if (linked) persisted += 1;
       }
     }
 
@@ -41,7 +41,7 @@ export async function runSearch(searchQueryId: string, target: ScrapeTarget): Pr
   return persisted;
 }
 
-async function persistCandidate(candidate: ScrapedCandidate, target: ScrapeTarget) {
+async function persistCandidate(searchQueryId: string, candidate: ScrapedCandidate, target: ScrapeTarget): Promise<boolean> {
   const [firstName, ...rest] = candidate.fullName.trim().split(/\s+/);
   const lastName = rest[rest.length - 1] ?? '';
 
@@ -58,7 +58,7 @@ async function persistCandidate(candidate: ScrapedCandidate, target: ScrapeTarge
       })
     : null;
 
-  await prisma.contact.upsert({
+  const contact = await prisma.contact.upsert({
     where: {
       sourceType_sourceUrl_fullName: {
         sourceType: candidate.sourceType,
@@ -82,4 +82,10 @@ async function persistCandidate(candidate: ScrapedCandidate, target: ScrapeTarge
       jobTitle: candidate.jobTitle ?? undefined,
     },
   });
+
+  const result = await prisma.searchResult.createMany({
+    data: [{ searchQueryId, contactId: contact.id }],
+    skipDuplicates: true,
+  });
+  return result.count > 0;
 }

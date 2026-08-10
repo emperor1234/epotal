@@ -37,22 +37,29 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <LinearGradient colors={['#0b1220', '#172554']} style={styles.hero}>
+    <ScrollView contentContainerStyle={[styles.content, width >= 900 && styles.contentWide]} keyboardShouldPersistTaps="handled">
+      <LinearGradient colors={['#081225', '#172554']} style={[styles.hero, width >= 900 && styles.heroWide]}>
         <View style={styles.logoMark}><Ionicons name="sparkles" size={20} color="#ffffff" /></View>
-        <Text style={styles.heroEyebrow}>B2B INTELLIGENCE, REFINED</Text>
-        <Text style={styles.heroTitle}>Find the right people.{'\n'}Reach them with confidence.</Text>
-        <Text style={styles.heroText}>Verified contact data, company context, and AI-assisted research in one focused workspace.</Text>
+        <Text style={styles.heroEyebrow}>REACHIQ</Text>
+        <Text style={[styles.heroTitle, width < 900 && styles.heroTitleMobile]}>Find the people behind growing companies.</Text>
+        <Text style={styles.heroText}>Search public professional sources, organize prospects, and reveal contact details in one workspace.</Text>
+        {width >= 900 && (
+          <View style={styles.featureList}>
+            <Feature icon="search" text="Multi-source professional search" />
+            <Feature icon="bookmark" text="Shortlists that stay organized" />
+            <Feature icon="shield-checkmark" text="Compliance-aware contact workflow" />
+          </View>
+        )}
       </LinearGradient>
       <View style={[styles.authColumn, width >= 900 && styles.authColumnWide]}>
       <View style={styles.header}>
         <Ionicons name="shield-checkmark" size={22} color={colors.secondary} />
-        <Text style={styles.brand}>ReachIQ</Text>
+        <Text style={styles.brand}>Sign in</Text>
       </View>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to continue to your prospecting workspace.</Text>
+        <Text style={styles.subtitle}>Continue to your prospecting workspace.</Text>
 
         <View style={styles.form}>
           <Input
@@ -84,37 +91,37 @@ export default function SignInScreen() {
         </View>
       </Card>
 
-      <View style={styles.trustRow}>
-        <View style={styles.trustItem}>
-          <Ionicons name="shield-checkmark-outline" size={14} color={colors.outline} />
-          <Text style={styles.trustText}>SECURE ACCESS</Text>
-        </View>
-        <View style={styles.trustItem}>
-          <Ionicons name="lock-closed-outline" size={14} color={colors.outline} />
-          <Text style={styles.trustText}>AES-256</Text>
-        </View>
-      </View>
-
-      <Text style={styles.copyright}>© 2026 ReachIQ · Secure contact intelligence</Text>
+      <Text style={styles.copyright}>Your credentials are sent securely to the ReachIQ API.</Text>
       </View>
     </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+function Feature({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return <View style={styles.feature}><View style={styles.featureIcon}><Ionicons name={icon} size={16} color="#bfdbfe" /></View><Text style={styles.featureText}>{text}</Text></View>;
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { flexGrow: 1, paddingBottom: 40 },
-  hero: { paddingHorizontal: 28, paddingTop: 64, paddingBottom: 48, gap: 14 },
+  content: { flexGrow: 1, paddingBottom: 28 },
+  contentWide: { flexDirection: 'row', paddingBottom: 0, minHeight: '100%' },
+  hero: { paddingHorizontal: 24, paddingTop: 30, paddingBottom: 28, gap: 10 },
+  heroWide: { width: '46%', minHeight: '100%', paddingHorizontal: 64, paddingVertical: 72, justifyContent: 'center', gap: 18 },
   logoMark: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-  heroEyebrow: { ...typography.labelSm, color: '#93c5fd', fontWeight: '800', letterSpacing: 1.2 },
-  heroTitle: { fontSize: 34, lineHeight: 41, letterSpacing: -1, fontWeight: '800', color: '#ffffff', maxWidth: 620 },
+  heroEyebrow: { ...typography.labelSm, color: '#93c5fd', fontWeight: '800', letterSpacing: 1.5 },
+  heroTitle: { fontSize: 44, lineHeight: 52, letterSpacing: -1.4, fontWeight: '800', color: '#ffffff', maxWidth: 620 },
+  heroTitleMobile: { fontSize: 29, lineHeight: 35, letterSpacing: -0.8 },
   heroText: { ...typography.bodyLg, color: '#cbd5e1', maxWidth: 560 },
-  authColumn: { padding: spacing.containerMargin, gap: spacing.sectionGap, width: '100%', maxWidth: 520, alignSelf: 'center', marginTop: 12 },
+  featureList: { gap: 12, marginTop: 18 },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  featureIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(59,130,246,0.18)', alignItems: 'center', justifyContent: 'center' },
+  featureText: { ...typography.bodyMd, color: '#e2e8f0', fontWeight: '600' },
+  authColumn: { padding: spacing.containerMargin, gap: 14, width: '100%', maxWidth: 480, alignSelf: 'center', marginTop: 4 },
   authColumnWide: { marginTop: 28 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
-  brand: { ...typography.headlineMd, fontWeight: '800', color: colors.primary },
-  card: { gap: 4, padding: 24 },
+  brand: { ...typography.bodyMd, fontWeight: '700', color: colors.onSurfaceVariant },
+  card: { gap: 4, padding: 22 },
   title: { ...typography.headlineLg, textAlign: 'center', color: colors.primary },
   subtitle: { ...typography.bodyMd, textAlign: 'center', color: colors.onSurfaceVariant, marginTop: 4 },
   form: { gap: 16, marginTop: 20 },
@@ -128,8 +135,5 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   footerText: { color: colors.onSurfaceVariant },
   link: { color: colors.secondary, fontWeight: '700' },
-  trustRow: { flexDirection: 'row', justifyContent: 'center', gap: 24 },
-  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trustText: { ...typography.labelSm, color: colors.outline, letterSpacing: 0.5 },
   copyright: { ...typography.labelSm, color: colors.outline, textAlign: 'center' },
 });

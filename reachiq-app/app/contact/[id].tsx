@@ -183,10 +183,11 @@ export default function ContactDetailScreen() {
         </Card>
 
         {contact.sourceUrl && (
-          <View style={styles.sourceNote}>
+          <Pressable accessibilityRole="link" style={styles.sourceNote} onPress={() => void Linking.openURL(contact.sourceUrl!)}>
             <Ionicons name="information-circle-outline" size={14} color={colors.outline} />
-            <Text style={styles.sourceNoteText}>Sourced via {contact.sourceType ?? 'unknown source'}</Text>
-          </View>
+            <Text style={styles.sourceNoteText}>View original public source</Text>
+            <Ionicons name="open-outline" size={13} color={colors.outline} />
+          </Pressable>
         )}
 
         {contact.company && (
@@ -245,12 +246,12 @@ const styles = StyleSheet.create({
   creditText: { color: colors.inverseOnSurface, fontSize: 12, fontWeight: '700' },
   content: { paddingBottom: 40 },
   heroCard: { backgroundColor: colors.surfaceContainerLowest },
-  heroBanner: { height: 112, backgroundColor: colors.deepNavy },
-  heroBody: { alignItems: 'center', paddingBottom: 20, marginTop: -48 },
+  heroBanner: { height: 88, backgroundColor: colors.deepNavy },
+  heroBody: { alignItems: 'center', paddingBottom: 20, marginTop: -40 },
   avatarWrap: { position: 'relative' },
   avatar: {
-    width: 96,
-    height: 96,
+    width: 80,
+    height: 80,
     borderRadius: radius.full,
     borderWidth: 4,
     borderColor: colors.surfaceContainerLowest,
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
   summaryText: { ...typography.bodyMd, color: colors.onSurfaceVariant, lineHeight: 20 },
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   contactLabel: { ...typography.labelSm, color: colors.outline },
-  contactValueLink: { ...typography.bodyLg, color: colors.secondary, fontWeight: '700' },
+  contactValueLink: { ...typography.bodyLg, color: colors.secondary, fontWeight: '700', flexShrink: 1 },
   actionRow: { flexDirection: 'row', gap: 8 },
   iconButton: {
     width: 48,

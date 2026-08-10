@@ -24,6 +24,7 @@ export default function SearchResultsScreen() {
 
   const fetchResults = useCallback(async () => {
     if (!searchId) return;
+    setError(null);
     try {
       const result = await withAuth((token) => searchesApi.getSearchResults(searchId, token));
       setStatus(result.status);
@@ -65,11 +66,11 @@ export default function SearchResultsScreen() {
       <TopBar showBack title="Results" credits={wallet?.balance} />
 
       <View style={styles.controlBar}>
-        <View style={styles.filterChip}>
-          <Ionicons name="filter" size={16} color={colors.outline} />
-          <Text style={styles.filterChipText}>{isSearching ? 'Searching…' : `${contacts.length} results`}</Text>
+        <View style={styles.statusCopy}>
+          <Text style={styles.statusTitle}>{isSearching ? 'Searching public sources' : failed ? 'Search stopped' : `${contacts.length} prospects found`}</Text>
+          <Text style={styles.statusSubtitle}>{isSearching ? 'New matches will appear here as they are found.' : 'Review, save, or reveal the contacts below.'}</Text>
         </View>
-        {isSearching && <ActivityIndicator size="small" color={colors.secondary} />}
+        {isSearching && <View style={styles.spinner}><ActivityIndicator size="small" color={colors.secondary} /></View>}
       </View>
 
       {(error || failed) && (
@@ -78,7 +79,7 @@ export default function SearchResultsScreen() {
             <Ionicons name="alert-circle-outline" size={20} color={colors.error} />
             <View style={{ flex: 1 }}>
               <Text style={styles.errorTitle}>Search could not be completed</Text>
-              <Text style={styles.errorText}>{error ?? 'The data sources did not complete this search. Try again or adjust your filters.'}</Text>
+              <Text style={styles.errorText}>{error ?? 'A public data source did not respond. Your partial results are preserved; you can retry safely.'}</Text>
             </View>
           </View>
           <Button label="Try again" variant="outline" onPress={() => void fetchResults()} />
@@ -95,7 +96,8 @@ export default function SearchResultsScreen() {
           !isSearching && !error && !failed ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={28} color={colors.outline} />
-              <Text style={styles.emptyText}>No contacts found for these filters yet.</Text>
+              <Text style={styles.emptyTitle}>No matches yet</Text>
+              <Text style={styles.emptyText}>Try a broader industry, a country instead of a city, or fewer keywords.</Text>
             </View>
           ) : null
         }
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   controlBar: {
     paddingHorizontal: spacing.containerMargin,
-    paddingVertical: 10,
+    paddingVertical: 14,
     backgroundColor: colors.surfaceContainerLowest,
     borderBottomWidth: 1,
     borderBottomColor: colors.outlineVariant,
@@ -117,23 +119,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.surfaceContainer,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-  },
-  filterChipText: { ...typography.labelMd, color: colors.onSurface, fontWeight: '600' },
+  statusCopy: { flex: 1, gap: 2 },
+  statusTitle: { ...typography.bodyLg, color: colors.primary, fontWeight: '800' },
+  statusSubtitle: { ...typography.labelMd, color: colors.outline, fontWeight: '400' },
+  spinner: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
   errorBox: { margin: spacing.containerMargin, padding: 16, gap: 14, borderRadius: radius.lg, backgroundColor: colors.errorContainer },
   errorCopy: { flexDirection: 'row', gap: 10 },
   errorTitle: { ...typography.bodyMd, color: colors.onErrorContainer, fontWeight: '800' },
   errorText: { ...typography.labelMd, color: colors.onErrorContainer, marginTop: 2 },
-  listContent: { padding: spacing.containerMargin, paddingBottom: 40, flexGrow: 1 },
+  listContent: { padding: spacing.containerMargin, paddingBottom: 40, flexGrow: 1, width: '100%', maxWidth: 760, alignSelf: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingTop: 60 },
-  emptyText: { ...typography.bodyMd, color: colors.outline, textAlign: 'center' },
+  emptyTitle: { ...typography.bodyLg, color: colors.primary, fontWeight: '800' },
+  emptyText: { ...typography.bodyMd, color: colors.outline, textAlign: 'center', maxWidth: 300 },
 });

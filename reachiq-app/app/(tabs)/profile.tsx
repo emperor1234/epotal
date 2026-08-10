@@ -63,29 +63,30 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      <TopBar title="ReachIQ" credits={wallet?.balance} />
+      <TopBar title="Settings" credits={wallet?.balance} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.identityRow}>
           <View style={styles.avatar}>
             <Ionicons name="person" size={26} color={colors.outline} />
           </View>
-          <View>
-            <Text style={styles.name}>{user?.email ?? 'Unknown user'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.accountLabel}>SIGNED IN AS</Text>
+            <Text numberOfLines={1} style={styles.name}>{user?.email ?? 'Unknown user'}</Text>
           </View>
         </View>
 
         <Card style={styles.section}>
-          <Text style={styles.label}>Credit Wallet</Text>
+          <Text style={styles.label}>Usage</Text>
           <View style={styles.walletRow}>
             <Text style={styles.walletValue}>{wallet?.balance ?? '—'}</Text>
-            <Text style={styles.walletCaption}>Credits available</Text>
+            <Text style={styles.walletCaption}>contact credits available</Text>
           </View>
         </Card>
 
         <Card style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="hardware-chip-outline" size={18} color={colors.onSurface} />
-            <Text style={styles.sectionTitle}>AI Configuration (BYOK)</Text>
+            <Text style={styles.sectionTitle}>AI summaries</Text>
           </View>
           <View style={styles.divider} />
 
@@ -111,10 +112,7 @@ export default function ProfileScreen() {
 
           <View style={styles.warningBox}>
             <Ionicons name="warning-outline" size={16} color={colors.error} />
-            <Text style={styles.warningText}>
-              Your key is encrypted and never stored in plaintext. Without a key, contact summaries fall back to a templated
-              description instead of AI-generated text.
-            </Text>
+            <Text style={styles.warningText}>Your API key is encrypted at rest. Without one, ReachIQ uses a standard profile summary.</Text>
           </View>
         </Card>
 
@@ -138,7 +136,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.containerMargin, gap: spacing.elementSpacing, paddingBottom: 40 },
+  content: { padding: spacing.containerMargin, gap: 12, paddingBottom: 40, width: '100%', maxWidth: 720, alignSelf: 'center' },
   identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   avatar: {
     width: 56,
@@ -149,6 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   name: { ...typography.headlineMd, color: colors.primary },
+  accountLabel: { ...typography.labelSm, color: colors.outline, fontWeight: '800', letterSpacing: 0.8 },
   section: { gap: 8 },
   label: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '700' },
   walletRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
@@ -158,7 +157,7 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },
   divider: { height: 1, backgroundColor: colors.outlineVariant },
   fieldLabel: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '700' },
-  keyRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  keyRow: { gap: 8 },
   deleteButton: {
     borderWidth: 1,
     borderColor: colors.error,

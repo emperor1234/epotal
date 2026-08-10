@@ -10,16 +10,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
-    borderRadius: radius.xl,
+    borderRadius: radius.lg,
     padding: spacing.cardPadding,
     ...(Platform.OS === 'web'
-      ? { boxShadow: '0 8px 24px rgba(11, 18, 32, 0.06)' }
+      ? { boxShadow: '0 4px 18px rgba(15, 23, 42, 0.05)' }
       : {
           shadowColor: '#0b1220',
-          shadowOpacity: 0.06,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 2,
+          shadowOpacity: 0.05,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 1,
         }),
   },
 });

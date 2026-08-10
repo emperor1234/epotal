@@ -68,10 +68,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
-    minHeight: 52,
+    paddingVertical: 12,
+    minHeight: 48,
     paddingHorizontal: 20,
-    borderRadius: radius.md,
+    borderRadius: radius.DEFAULT,
   },
   label: {
     ...typography.labelMd,

@@ -43,13 +43,13 @@ searchRouter.get(
     const searchQuery = await prisma.searchQuery.findUnique({ where: { id: String(req.params.id) } });
     if (!searchQuery || searchQuery.userId !== req.userId) throw ApiError.notFound('Search not found');
 
-    const filters = searchQuery.filters as { industry: string; country: string };
-    const contacts = await prisma.contact.findMany({
-      where: { industry: filters.industry, country: filters.country },
-      include: { company: true },
+    const results = await prisma.searchResult.findMany({
+      where: { searchQueryId: searchQuery.id },
+      include: { contact: { include: { company: true } } },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+    const contacts = results.map((result) => result.contact);
 
     res.json({ status: searchQuery.status, contacts });
   }),

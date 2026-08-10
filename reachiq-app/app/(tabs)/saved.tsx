@@ -35,11 +35,12 @@ export default function SavedScreen() {
             }}
           />
         )}
+        ListHeaderComponent={contacts.length > 0 ? <View style={styles.header}><Text style={styles.headerTitle}>Your shortlist</Text><Text style={styles.headerText}>Contacts saved for review and outreach.</Text></View> : null}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}><Ionicons name="bookmark-outline" size={30} color={colors.secondary} /></View>
             <Text style={styles.emptyTitle}>Your shortlist is empty</Text>
-            <Text style={styles.emptyText}>Save promising contacts from search results to keep them close.</Text>
+            <Text style={styles.emptyText}>Tap the bookmark on any search result to build a focused outreach list.</Text>
           </View>
         }
       />
@@ -49,7 +50,10 @@ export default function SavedScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  list: { flexGrow: 1, padding: spacing.containerMargin },
+  list: { flexGrow: 1, padding: spacing.containerMargin, width: '100%', maxWidth: 760, alignSelf: 'center' },
+  header: { gap: 3, marginBottom: 18 },
+  headerTitle: { ...typography.headlineLg, color: colors.primary, fontWeight: '800' },
+  headerText: { ...typography.bodyMd, color: colors.outline },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: spacing.containerMargin },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   emptyTitle: { ...typography.headlineMd, color: colors.primary, fontWeight: '800' },

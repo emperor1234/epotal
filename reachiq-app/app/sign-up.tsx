@@ -11,7 +11,6 @@ import { colors, spacing, typography } from '../theme/tokens';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,10 +18,6 @@ export default function SignUpScreen() {
 
   const handleCreate = async () => {
     setError(null);
-    if (!name.trim()) {
-      setError('Enter your full name.');
-      return;
-    }
     if (!email.trim()) {
       setError('Enter your work email.');
       return;
@@ -33,8 +28,6 @@ export default function SignUpScreen() {
     }
     setLoading(true);
     try {
-      // Full name is UI-only for now — the backend's User model doesn't
-      // persist a display name yet, only email + credentials.
       await signUp(email.trim(), password);
       // Navigation on success is handled by the root layout's AuthGate.
     } catch (err) {
@@ -53,10 +46,9 @@ export default function SignUpScreen() {
 
       <Card style={styles.card}>
         <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.subtitle}>Start discovering verified B2B contacts.</Text>
+        <Text style={styles.subtitle}>Create your workspace in less than a minute.</Text>
 
         <View style={styles.form}>
-          <Input label="Full Name" icon="person-outline" placeholder="Jane Doe" value={name} onChangeText={setName} />
           <Input
             label="Work Email"
             icon="mail-outline"
@@ -81,25 +73,14 @@ export default function SignUpScreen() {
         </View>
       </Card>
 
-      <View style={styles.trustRow}>
-        <View style={styles.trustItem}>
-          <Ionicons name="shield-checkmark-outline" size={14} color={colors.outline} />
-          <Text style={styles.trustText}>SOC2 TYPE II</Text>
-        </View>
-        <View style={styles.trustItem}>
-          <Ionicons name="document-text-outline" size={14} color={colors.outline} />
-          <Text style={styles.trustText}>AES-256</Text>
-        </View>
-      </View>
-
-      <Text style={styles.copyright}>© 2026 ReachIQ · Secure contact intelligence</Text>
+      <Text style={styles.copyright}>By creating an account, you agree to use sourced data responsibly.</Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.containerMargin, paddingTop: 60, paddingBottom: 40, gap: spacing.sectionGap },
+  content: { padding: spacing.containerMargin, paddingTop: 32, paddingBottom: 40, gap: 16, width: '100%', maxWidth: 520, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
   brand: { ...typography.headlineMd, fontWeight: '800', color: colors.primary },
   card: { gap: 4 },
@@ -113,8 +94,5 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   footerText: { color: colors.onSurfaceVariant },
   link: { color: colors.secondary, fontWeight: '700' },
-  trustRow: { flexDirection: 'row', justifyContent: 'center', gap: 24 },
-  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trustText: { ...typography.labelSm, color: colors.outline, letterSpacing: 0.5 },
   copyright: { ...typography.labelSm, color: colors.outline, textAlign: 'center' },
 });

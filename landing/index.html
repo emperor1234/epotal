@@ -1,187 +1,229 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ReachIQ — Download</title>
-<style>
-  :root {
-    --navy: #0F172A;
-    --navy-light: #1E293B;
-    --blue: #3B82F6;
-    --emerald: #10B981;
-    --border: #334155;
-    --text-dim: #94A3B8;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--navy);
-    color: #F8FAFC;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    text-align: center;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 32px;
-  }
-  .brand-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: var(--blue);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-  }
-  .brand-name { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#081225" />
+  <meta name="description" content="Download the latest ReachIQ mobile release for Android or join the iOS beta." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%233b82f6'/%3E%3Cpath d='m32 10 4 13 13 4-13 4-4 13-4-13-13-4 13-4 4-13Z' fill='white'/%3E%3C/svg%3E" />
+  <title>Download ReachIQ</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07101f;
+      --surface: rgba(15, 27, 48, .82);
+      --surface-strong: #101d32;
+      --border: rgba(148, 163, 184, .18);
+      --text: #f8fafc;
+      --muted: #9eacc0;
+      --blue: #3b82f6;
+      --blue-light: #93c5fd;
+      --green: #34d399;
+      --shadow: 0 28px 80px rgba(0, 0, 0, .32);
+    }
 
-  h1 {
-    font-size: clamp(28px, 5vw, 42px);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin: 0 0 12px;
-    max-width: 640px;
-  }
-  p.subtitle {
-    color: var(--text-dim);
-    font-size: 16px;
-    max-width: 480px;
-    margin: 0 0 40px;
-    line-height: 1.5;
-  }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(37, 99, 235, .2), transparent 28rem),
+        radial-gradient(circle at 86% 74%, rgba(14, 165, 233, .09), transparent 28rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
-  .buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    width: 100%;
-    max-width: 360px;
-  }
-  .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 16px 24px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    text-decoration: none;
-    border: 1px solid var(--border);
-    transition: transform 0.15s ease, opacity 0.15s ease;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn-primary {
-    background: var(--blue);
-    color: white;
-    border-color: var(--blue);
-  }
-  .btn-secondary {
-    background: var(--navy-light);
-    color: #F8FAFC;
-  }
-  .btn.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  .btn-icon { font-size: 18px; line-height: 1; }
+    a { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .page { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
 
-  .note {
-    margin-top: 28px;
-    max-width: 420px;
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-  .note strong { color: #CBD5E1; }
+    header {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; text-decoration: none; }
+    .mark {
+      width: 36px; height: 36px; border-radius: 11px;
+      display: grid; place-items: center;
+      background: linear-gradient(145deg, #60a5fa, #2563eb);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, .28);
+    }
+    .mark svg { width: 20px; }
+    .brand span { font-size: 19px; letter-spacing: -.02em; }
+    .release-link { color: var(--muted); font-size: 14px; font-weight: 650; text-decoration: none; }
+    .release-link:hover { color: var(--text); }
 
-  .footer {
-    margin-top: 56px;
-    font-size: 12px;
-    color: #475569;
-  }
+    main { padding: 78px 0 58px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(340px, .88fr); gap: 72px; align-items: center; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--blue-light); font-size: 12px; letter-spacing: .12em; font-weight: 800;
+    }
+    .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 5px rgba(52, 211, 153, .1); }
+    h1 { margin: 20px 0 18px; max-width: 700px; font-size: clamp(44px, 6.2vw, 72px); line-height: .99; letter-spacing: -.055em; }
+    .lead { margin: 0; max-width: 620px; color: #c0cada; font-size: 18px; line-height: 1.65; }
+    .points { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 30px; }
+    .point { padding: 8px 11px; border: 1px solid var(--border); border-radius: 999px; color: #cbd5e1; font-size: 12px; font-weight: 650; background: rgba(255,255,255,.025); }
 
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(16, 185, 129, 0.12);
-    color: var(--emerald);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    margin-bottom: 20px;
-  }
-</style>
+    .download-card {
+      position: relative; overflow: hidden;
+      padding: 28px; border: 1px solid var(--border); border-radius: 24px;
+      background: linear-gradient(155deg, rgba(24, 42, 70, .95), rgba(12, 23, 41, .92));
+      box-shadow: var(--shadow); backdrop-filter: blur(16px);
+    }
+    .download-card::after { content: ""; position: absolute; width: 190px; height: 190px; right: -95px; top: -105px; border-radius: 50%; background: rgba(59, 130, 246, .16); filter: blur(3px); }
+    .platform { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .platform-icon { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: rgba(147, 197, 253, .1); border: 1px solid rgba(147, 197, 253, .16); }
+    .platform-icon svg { width: 25px; height: 25px; fill: #dbeafe; }
+    .version { color: var(--muted); font-size: 12px; text-align: right; }
+    .version strong { display: block; margin-bottom: 3px; color: var(--text); font-size: 14px; }
+    .download-card h2 { margin: 23px 0 7px; font-size: 25px; letter-spacing: -.025em; }
+    .card-copy { margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .actions { display: grid; gap: 10px; }
+    .button {
+      min-height: 52px; padding: 0 18px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      border: 1px solid transparent; text-decoration: none; font-size: 15px; font-weight: 780;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+    .button:hover { transform: translateY(-1px); }
+    .primary { background: var(--blue); color: white; box-shadow: 0 12px 28px rgba(37, 99, 235, .23); }
+    .primary:hover { background: #4b8cf7; }
+    .secondary { background: rgba(255,255,255,.035); border-color: var(--border); color: #dbe5f2; }
+    .secondary:hover { background: rgba(255,255,255,.065); }
+    .button.disabled { opacity: .48; pointer-events: none; }
+    .button svg { width: 18px; height: 18px; fill: currentColor; }
+    .helper { margin: 15px 0 0; color: #7f8da3; font-size: 11px; line-height: 1.5; text-align: center; }
+
+    .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 78px; }
+    .detail { padding: 21px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.025); }
+    .detail-number { color: var(--blue-light); font-size: 12px; font-weight: 800; letter-spacing: .1em; }
+    .detail h3 { margin: 12px 0 7px; font-size: 16px; }
+    .detail p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    footer { display: flex; justify-content: space-between; gap: 20px; padding: 25px 0 34px; border-top: 1px solid var(--border); color: #6f7e94; font-size: 12px; }
+    footer a { text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 800px) {
+      .page { width: min(100% - 32px, 560px); }
+      header { height: 68px; }
+      main { padding: 48px 0 38px; }
+      .hero { grid-template-columns: 1fr; gap: 38px; }
+      h1 { font-size: clamp(40px, 13vw, 58px); }
+      .lead { font-size: 16px; }
+      .details { grid-template-columns: 1fr; margin-top: 46px; }
+      footer { flex-direction: column; }
+    }
+    @media (max-width: 410px) {
+      .release-link { display: none; }
+      .download-card { padding: 22px; border-radius: 20px; }
+      .points { gap: 7px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .button { transition: none; } }
+  </style>
 </head>
 <body>
-  <div class="brand">
-    <div class="brand-icon">R</div>
-    <div class="brand-name">ReachIQ</div>
+  <div class="page">
+    <header>
+      <a class="brand" href="/" aria-label="ReachIQ home">
+        <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="white" d="m12 2 1.45 4.55L18 8l-4.55 1.45L12 14l-1.45-4.55L6 8l4.55-1.45L12 2Zm7 10 .9 2.1L22 15l-2.1.9L19 18l-.9-2.1L16 15l2.1-.9L19 12ZM5 13l1.18 2.82L9 17l-2.82 1.18L5 21l-1.18-2.82L1 17l2.82-1.18L5 13Z"/></svg></span>
+        <span>ReachIQ</span>
+      </a>
+      <a class="release-link" href="https://github.com/emperor1234/epotal/releases/latest">Release notes ↗</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">LATEST MOBILE RELEASE</div>
+          <h1>Prospecting that travels with you.</h1>
+          <p class="lead">Find professionals across public sources, save the right contacts, and continue your research wherever work takes you.</p>
+          <div class="points" aria-label="Product features">
+            <span class="point">Multi-source discovery</span>
+            <span class="point">Contact shortlists</span>
+            <span class="point">AI summaries</span>
+          </div>
+        </div>
+
+        <aside class="download-card" aria-labelledby="download-title">
+          <div class="platform">
+            <span class="platform-icon" id="platform-icon" aria-hidden="true"></span>
+            <span class="version"><strong id="version">Latest release</strong><span id="release-date">From GitHub Releases</span></span>
+          </div>
+          <h2 id="download-title">Get ReachIQ</h2>
+          <p class="card-copy" id="platform-copy">Choose your platform to get the newest available build.</p>
+          <div class="actions">
+            <a class="button primary" id="primary-download" href="https://github.com/emperor1234/epotal/releases/latest">View latest release</a>
+            <a class="button secondary" href="https://github.com/emperor1234/epotal/releases/latest">See all download options</a>
+          </div>
+          <p class="helper" id="helper">Release downloads are securely hosted by GitHub.</p>
+        </aside>
+      </section>
+
+      <section class="details" aria-label="Installation steps">
+        <article class="detail"><span class="detail-number">01</span><h3>Download</h3><p>Open the latest release and choose the build for your device.</p></article>
+        <article class="detail"><span class="detail-number">02</span><h3>Install</h3><p>Android may ask you to allow installs from your browser the first time.</p></article>
+        <article class="detail"><span class="detail-number">03</span><h3>Stay current</h3><p>Return to this page whenever a new version is announced.</p></article>
+      </section>
+    </main>
+
+    <footer><span>© 2026 ReachIQ</span><span><a href="https://github.com/emperor1234/epotal/releases">Previous releases</a> · Public professional data should be used responsibly.</span></footer>
   </div>
-
-  <div class="badge">● Internal build</div>
-
-  <h1>Get the ReachIQ app</h1>
-  <p class="subtitle">
-    B2B contact intelligence, on your phone. This is a private build for the team —
-    not on the App Store or Play Store.
-  </p>
-
-  <div class="buttons">
-    <a id="android-btn" class="btn btn-primary" href="#" download>
-      <span class="btn-icon">⬇</span> Download for Android (.apk)
-    </a>
-    <a id="ios-btn" class="btn btn-secondary disabled" href="#">
-      <span class="btn-icon"></span> Get it on TestFlight (iOS)
-    </a>
-  </div>
-
-  <p class="note">
-    <strong>Android:</strong> after downloading, open the file and allow
-    "Install unknown apps" for your browser when prompted — this is a
-    one-time setting.<br /><br />
-    <strong>iOS:</strong> sideloading isn't possible without Apple's tooling,
-    so iOS is distributed via TestFlight instead. You'll need an email
-    invite — ask whoever manages the build to add you as a tester.
-  </p>
-
-  <div class="footer">ReachIQ · not for public distribution</div>
 
   <script>
-    // Replace these with your real links after building:
-    //   Android: the download URL EAS prints after `eas build --platform android --profile preview`
-    //            (or your own hosted .apk URL if you upload it somewhere else)
-    //   iOS:     your TestFlight public/invite link from App Store Connect
-    const APK_URL = 'PASTE_YOUR_APK_DOWNLOAD_URL_HERE';
-    const TESTFLIGHT_URL = 'PASTE_YOUR_TESTFLIGHT_URL_HERE';
+    const REPOSITORY = 'emperor1234/epotal';
+    const LATEST_RELEASE = `https://github.com/${REPOSITORY}/releases/latest`;
+    const LATEST_APK = `https://github.com/${REPOSITORY}/releases/latest/download/ReachIQ.apk`;
+    const TESTFLIGHT_URL = ''; // Add the public TestFlight link when it is available.
 
-    const androidBtn = document.getElementById('android-btn');
-    const iosBtn = document.getElementById('ios-btn');
+    const icons = {
+      android: '<svg viewBox="0 0 24 24"><path d="M17.6 9.48 19.44 6.3a.63.63 0 0 0-1.09-.63l-1.86 3.22A10.9 10.9 0 0 0 12 7.93c-1.63 0-3.15.35-4.5.96L5.64 5.67a.63.63 0 1 0-1.09.63L6.4 9.48A9.38 9.38 0 0 0 2.55 14h18.9a9.38 9.38 0 0 0-3.85-4.52ZM7.75 12.2a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6Zm8.5 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6ZM2.5 15h19v1.5a2 2 0 0 1-2 2h-.5V21a1 1 0 0 1-2 0v-2.5H7V21a1 1 0 0 1-2 0v-2.5h-.5a2 2 0 0 1-2-2V15Z"/></svg>',
+      apple: '<svg viewBox="0 0 24 24"><path d="M17.05 12.54c-.02-2.03 1.66-3.02 1.74-3.07a3.74 3.74 0 0 0-2.95-1.6c-1.24-.13-2.44.74-3.07.74-.64 0-1.6-.73-2.64-.71a3.9 3.9 0 0 0-3.3 2c-1.43 2.47-.36 6.1 1 8.1.68.97 1.48 2.05 2.52 2.01 1.02-.04 1.4-.65 2.63-.65 1.22 0 1.58.65 2.65.63 1.1-.02 1.8-.97 2.45-1.95a8.1 8.1 0 0 0 1.12-2.28 3.52 3.52 0 0 1-2.15-3.22ZM15.03 6.55a3.56 3.56 0 0 0 .82-2.55 3.63 3.63 0 0 0-2.35 1.21 3.4 3.4 0 0 0-.85 2.45 3 3 0 0 0 2.38-1.11Z"/></svg>',
+      phone: '<svg viewBox="0 0 24 24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 3v14h10V5H7Zm4 15h2v1h-2v-1Z"/></svg>'
+    };
 
-    if (APK_URL && !APK_URL.startsWith('PASTE_')) {
-      androidBtn.href = APK_URL;
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const primary = document.getElementById('primary-download');
+    const icon = document.getElementById('platform-icon');
+    const copy = document.getElementById('platform-copy');
+    const helper = document.getElementById('helper');
+
+    if (isAndroid) {
+      icon.innerHTML = icons.android;
+      primary.href = LATEST_APK;
+      primary.textContent = 'Download Android APK';
+      copy.textContent = 'Your Android download is ready. The link always points to the newest release.';
+      helper.textContent = 'You may need to allow installation from your browser.';
+    } else if (isIOS) {
+      icon.innerHTML = icons.apple;
+      primary.href = TESTFLIGHT_URL || LATEST_RELEASE;
+      primary.textContent = TESTFLIGHT_URL ? 'Install with TestFlight' : 'View iOS release status';
+      copy.textContent = TESTFLIGHT_URL ? 'Install the latest iPhone beta through Apple TestFlight.' : 'The iPhone build will be distributed through TestFlight when available.';
+      helper.textContent = 'iPhone apps cannot be installed directly from a standard GitHub IPA download.';
     } else {
-      androidBtn.classList.add('disabled');
-      androidBtn.querySelector('.btn-icon').nextSibling.textContent = ' Android build not published yet';
+      icon.innerHTML = icons.phone;
+      primary.href = LATEST_RELEASE;
+      primary.textContent = 'Choose a mobile download';
     }
 
-    if (TESTFLIGHT_URL && !TESTFLIGHT_URL.startsWith('PASTE_')) {
-      iosBtn.href = TESTFLIGHT_URL;
-      iosBtn.classList.remove('disabled');
-    }
+    fetch(`https://api.github.com/repos/${REPOSITORY}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } })
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(release => {
+        document.getElementById('version').textContent = release.name || release.tag_name || 'Latest release';
+        if (release.published_at) {
+          document.getElementById('release-date').textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(release.published_at));
+        }
+      })
+      .catch(() => {});
   </script>
 </body>
 </html>

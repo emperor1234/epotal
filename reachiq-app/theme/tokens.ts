@@ -1,7 +1,7 @@
 // Design tokens ported from stitch_direct_outreach_lead_finder/reachiq/DESIGN.md
 
 export const colors = {
-  surface: '#f8fafc',
+  surface: '#ffffff',
   surfaceDim: '#d8dadc',
   surfaceBright: '#f7f9fb',
   surfaceContainerLowest: '#ffffff',
@@ -14,7 +14,7 @@ export const colors = {
   inverseSurface: '#2d3133',
   inverseOnSurface: '#eff1f3',
   outline: '#64748b',
-  outlineVariant: '#dbe3ec',
+  outlineVariant: '#e2e8f0',
 
   primary: '#0b1220',
   onPrimary: '#ffffff',
@@ -36,7 +36,7 @@ export const colors = {
   errorContainer: '#ffdad6',
   onErrorContainer: '#93000a',
 
-  background: '#f4f7fb',
+  background: '#f6f8fc',
   onBackground: '#191c1e',
   surfaceVariant: '#e0e3e5',
 
@@ -70,9 +70,9 @@ export const radius = {
 } as const;
 
 export const spacing = {
-  containerMargin: 20,
+  containerMargin: 18,
   stackGap: 12,
-  cardPadding: 20,
+  cardPadding: 18,
   elementSpacing: 8,
   sectionGap: 24,
 } as const;

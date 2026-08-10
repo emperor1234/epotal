@@ -10,18 +10,25 @@ import { useAuth } from '../../context/auth';
 import * as searchesApi from '../../data/searches';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 
-const SUGGESTIONS = ['AI/ML', 'B2B', 'Cloud'];
-const SENIORITY = ['Junior', 'Mid', 'Senior', 'Exec'];
+const SUGGESTIONS = ['Founder', 'Revenue', 'Engineering'];
+const SENIORITY = ['Any', 'Manager', 'Director', 'Executive'];
+const SOURCES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { icon: 'logo-linkedin', label: 'LinkedIn' },
+  { icon: 'logo-facebook', label: 'Facebook' },
+  { icon: 'logo-instagram', label: 'Instagram' },
+  { icon: 'logo-twitter', label: 'X' },
+  { icon: 'globe-outline', label: 'Company sites' },
+];
 
 export default function SearchScreen() {
   const router = useRouter();
   const { withAuth, wallet } = useAuth();
 
-  const [keywords, setKeywords] = useState(['SaaS', 'Fintech']);
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [industry, setIndustry] = useState('');
   const [country, setCountry] = useState('');
-  const [seniority, setSeniority] = useState('Junior');
+  const [seniority, setSeniority] = useState('Any');
   const [fullCrawl, setFullCrawl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +73,15 @@ export default function SearchScreen() {
     <View style={styles.screen}>
       <TopBar credits={wallet?.balance} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.headerCard}>
-          <Text style={styles.title}>Professional Search</Text>
-          <Text style={styles.subtitle}>Build a focused prospect list using industry, location, seniority, and intent keywords.</Text>
-        </Card>
+        <View style={styles.intro}>
+          <Text style={styles.eyebrow}>PROSPECT DISCOVERY</Text>
+          <Text style={styles.title}>Who are you looking for?</Text>
+          <Text style={styles.subtitle}>Describe the market and role. ReachIQ searches public professional and company sources.</Text>
+        </View>
+
+        <View style={styles.sourcesRow}>
+          {SOURCES.map((source) => <View key={source.label} style={styles.sourceChip}><Ionicons name={source.icon} size={14} color={colors.onSurfaceVariant} /><Text style={styles.sourceText}>{source.label}</Text></View>)}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Keywords</Text>
@@ -102,8 +114,8 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <TextField label="Industry" placeholder="e.g. SaaS" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
-        <TextField label="Country" placeholder="e.g. United Kingdom" icon="earth" value={country} onChangeText={setCountry} />
+        <TextField label="Industry" placeholder="e.g. Financial technology" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
+        <TextField label="Location" placeholder="e.g. United Kingdom" icon="location-outline" value={country} onChangeText={setCountry} />
 
         <View style={styles.section}>
           <Text style={styles.label}>Seniority Level</Text>
@@ -124,9 +136,9 @@ export default function SearchScreen() {
         </View>
 
         <View style={styles.toggleRow}>
-          <View style={styles.toggleLabelRow}>
-            <Text style={styles.toggleLabel}>Full Directory Crawl</Text>
-            <Ionicons name="information-circle-outline" size={16} color={colors.outline} />
+          <View style={styles.toggleCopy}>
+            <View style={styles.toggleLabelRow}><Text style={styles.toggleLabel}>Deep search</Text><Ionicons name="information-circle-outline" size={16} color={colors.outline} /></View>
+            <Text style={styles.toggleDescription}>Search directories too. This takes longer but can find more companies.</Text>
           </View>
           <Switch
             value={fullCrawl}
@@ -138,22 +150,14 @@ export default function SearchScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Button
-          label="Search Professionals"
-          variant="dark"
-          icon="people-outline"
+          label="Find prospects"
+          variant="primary"
+          icon="search"
           loading={submitting}
           onPress={handleSearch}
         />
 
-        <View style={styles.footerRow}>
-          <View style={styles.footerItem}>
-            <Text style={styles.footerText}>Compliance-aware sourcing</Text>
-          </View>
-          <View style={styles.footerItem}>
-            <Ionicons name="flash" size={14} color={colors.secondary} />
-            <Text style={styles.footerText}>Instant Reveal</Text>
-          </View>
-        </View>
+        <Text style={styles.disclaimer}>Results come from publicly indexed pages and may need verification before outreach.</Text>
       </ScrollView>
     </View>
   );
@@ -191,10 +195,14 @@ function TextField({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.containerMargin, gap: spacing.sectionGap, paddingBottom: 40 },
-  headerCard: { gap: 6 },
-  title: { ...typography.headlineLg, color: colors.primary },
+  content: { padding: spacing.containerMargin, gap: 20, paddingBottom: 40, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  intro: { gap: 6, paddingTop: 4 },
+  eyebrow: { ...typography.labelSm, color: colors.secondary, fontWeight: '800', letterSpacing: 1.1 },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.7, color: colors.primary },
   subtitle: { ...typography.bodyMd, color: colors.onSurfaceVariant },
+  sourcesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.outlineVariant, backgroundColor: colors.surfaceContainerLowest, borderRadius: radius.full, paddingHorizontal: 9, paddingVertical: 6 },
+  sourceText: { ...typography.labelSm, color: colors.onSurfaceVariant, fontWeight: '600' },
   section: { gap: 8 },
   label: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '700', textTransform: 'none' },
   keywordField: {
@@ -249,19 +257,12 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.md, padding: 14, gap: 16,
   },
+  toggleCopy: { flex: 1, gap: 3 },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   toggleLabel: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },
+  toggleDescription: { ...typography.labelMd, color: colors.outline, fontWeight: '400' },
   error: { ...typography.labelMd, color: colors.error, fontWeight: '600' },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.outlineVariant,
-  },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '600' },
+  disclaimer: { ...typography.labelSm, color: colors.outline, textAlign: 'center', lineHeight: 16 },
 });

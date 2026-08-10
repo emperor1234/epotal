@@ -22,14 +22,14 @@ export function TopBar({
             <Ionicons name="arrow-back" size={22} color={colors.primary} />
           </Pressable>
         ) : (
-          <Ionicons name="git-network" size={20} color={colors.primary} />
+          <View style={styles.logoMark}><Ionicons name="sparkles" size={14} color={colors.onSecondary} /></View>
         )}
         <Text style={styles.title}>{title}</Text>
       </View>
       {credits !== undefined && (
         <View style={styles.creditPill}>
-          <Ionicons name="pricetag" size={14} color={colors.onPrimaryContainer} />
-          <Text style={styles.creditText}>{credits} Credits</Text>
+          <Ionicons name="flash" size={13} color={colors.secondary} />
+          <Text style={styles.creditText}>{credits}</Text>
         </View>
       )}
     </View>
@@ -42,23 +42,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.containerMargin,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.outlineVariant,
   },
   left: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoMark: { width: 28, height: 28, borderRadius: 9, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.headlineMd, color: colors.primary, fontWeight: '800' },
   creditPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primaryContainer,
-    paddingHorizontal: 12,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderColor: '#bfdbfe',
   },
   creditText: { color: colors.onPrimaryContainer, fontSize: 12, fontWeight: '700' },
 });

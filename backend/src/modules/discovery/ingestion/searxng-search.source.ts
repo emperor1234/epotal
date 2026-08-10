@@ -4,6 +4,7 @@ import { IngestionSource, ScrapedCandidate, ScrapeTarget } from './ingestion-sou
 import { parseNameTitleFromSnippet } from './parsers';
 
 const MAX_PAGES_PER_QUERY = 3;
+const SEARCH_TIMEOUT_MS = 15_000;
 
 interface SearxngResult {
   title: string;
@@ -19,6 +20,7 @@ interface SearxngResult {
 // under `search.formats` (disabled by default) — see backend/README.md.
 export class SearxngSearchIngestionSource implements IngestionSource {
   readonly name = 'searxng-search';
+  private preferredBaseUrl = new URL(env.SEARXNG_URL);
 
   async *streamCandidates(target: ScrapeTarget): AsyncGenerator<ScrapedCandidate[]> {
     for (const query of this.buildQueryVariants(target)) {
@@ -38,7 +40,12 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   private buildQueryVariants(target: ScrapeTarget): string[] {
     const base = `"${target.industry}" "${target.country}"`;
     return [
-      `site:linkedin.com/in ${base}`, // snippet only — never fetch the linked page (SYSTEM_DESIGN.md Section 3.1)
+      // Only public search-result metadata is consumed. We never sign in to,
+      // bypass access controls on, or fetch profile pages from these services.
+      `site:linkedin.com/in ${base}`,
+      `site:facebook.com ${base} (founder OR director OR manager OR CEO)`,
+      `site:instagram.com ${base} (founder OR director OR manager OR CEO)`,
+      `(site:x.com OR site:twitter.com) ${base} (founder OR director OR manager OR CEO)`,
       `${base} "our team" OR "meet the team"`,
       ...(target.keywords ?? []).map((keyword) => `${base} "${keyword}"`),
     ];
@@ -51,18 +58,37 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   }
 
   private async search(query: string, page: number): Promise<SearxngResult[]> {
-    const url = new URL('/search', env.SEARXNG_URL);
+    const configuredUrl = this.preferredBaseUrl;
+    const response = await this.fetchSearch(configuredUrl, query, page);
+
+    // Coolify commonly exposes the service through its generated hostname on
+    // port 80 even if the container itself listens on 8080. Recover from an
+    // accidentally configured container port instead of making every search
+    // silently empty (the previous production configuration did exactly this).
+    if (!response && configuredUrl.port) {
+      const publicUrl = new URL(configuredUrl);
+      publicUrl.port = '';
+      logger.warn({ configuredUrl: configuredUrl.origin, fallbackUrl: publicUrl.origin }, 'Retrying SearXNG on its public port');
+      const fallbackResponse = await this.fetchSearch(publicUrl, query, page);
+      if (fallbackResponse?.ok) this.preferredBaseUrl = publicUrl;
+      return this.readResults(fallbackResponse, query, page);
+    }
+
+    return this.readResults(response, query, page);
+  }
+
+  private async fetchSearch(baseUrl: URL, query: string, page: number): Promise<Response | null> {
+    const url = new URL('/search', baseUrl);
     url.searchParams.set('q', query);
     url.searchParams.set('format', 'json');
     url.searchParams.set('pageno', String(page));
-
-    // No timeout here means an unreachable/stalled SearXNG instance hangs
-    // this fetch forever — and since sources run sequentially in the
-    // orchestrator, that hangs the entire search job indefinitely.
-    const response = await fetch(url.toString(), { signal: AbortSignal.timeout(15_000) }).catch((err) => {
-      logger.warn({ query, page, err }, 'SearXNG request failed or timed out');
+    return fetch(url.toString(), { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) }).catch((err) => {
+      logger.warn({ baseUrl: baseUrl.origin, query, page, err }, 'SearXNG request failed or timed out');
       return null;
     });
+  }
+
+  private async readResults(response: Response | null, query: string, page: number): Promise<SearxngResult[]> {
     if (!response || !response.ok) {
       if (response) logger.warn({ query, page, status: response.status }, 'SearXNG request failed');
       return [];

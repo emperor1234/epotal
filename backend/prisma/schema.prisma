@@ -106,6 +106,7 @@ model Contact {
   createdAt      DateTime                 @default(now())
   reveals        ContactReveal[]
   descriptions   UserContactDescription[]
+  searchResults  SearchResult[]
 
   @@index([industry, country])
   @@unique([sourceType, sourceUrl, fullName])
@@ -163,6 +164,18 @@ model SearchQuery {
   status      String
   resultCount Int      @default(0)
   createdAt   DateTime @default(now())
+  results     SearchResult[]
+}
+
+model SearchResult {
+  searchQueryId String
+  contactId     String
+  searchQuery   SearchQuery @relation(fields: [searchQueryId], references: [id], onDelete: Cascade)
+  contact       Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@id([searchQueryId, contactId])
+  @@index([contactId])
 }
 
 model AuditLog {

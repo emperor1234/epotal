@@ -25,6 +25,7 @@ export function ProfileCard({
   const [revealing, setRevealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const source = getSourceLabel(contact.sourceUrl, contact.sourceType);
 
   useEffect(() => {
     savedContacts.isSaved(contact.id).then(setSaved);
@@ -78,9 +79,9 @@ export function ProfileCard({
                 />
               )}
             </View>
-            <Text style={styles.title}>{contact.jobTitle ?? 'Unknown title'}</Text>
+            <Text style={styles.title}>{contact.jobTitle ?? 'Role not listed'}</Text>
             <View style={styles.metaRow}>
-              <Text style={styles.metaCompany}>{contact.company?.name ?? 'Unknown company'}</Text>
+              {contact.company?.name && <Text style={styles.metaCompany}>{contact.company.name}</Text>}
               {contact.country && (
                 <View style={styles.metaItem}>
                   <Ionicons name="location-outline" size={13} color={colors.outline} />
@@ -97,6 +98,8 @@ export function ProfileCard({
           </View>
         </View>
       </View>
+
+      <View style={styles.sourceRow}><Ionicons name={source.icon} size={13} color={colors.secondary} /><Text style={styles.sourceText}>Found on {source.label}</Text></View>
 
       <View style={styles.actionRow}>
         {reveal && (
@@ -118,7 +121,7 @@ export function ProfileCard({
           }}
         >
           <Ionicons name={reveal ? 'mail' : 'lock-open-outline'} size={16} color={reveal ? colors.primary : colors.onSecondary} />
-          <Text style={[styles.revealText, reveal && styles.revealTextDone]}>
+          <Text numberOfLines={1} style={[styles.revealText, reveal && styles.revealTextDone]}>
             {revealing ? 'Revealing…' : reveal ? reveal.email : 'Reveal Contact (Free)'}
           </Text>
         </Pressable>
@@ -127,12 +130,7 @@ export function ProfileCard({
       {error && <Text style={styles.error}>{error}</Text>}
 
       <View style={styles.footer}>
-        <View style={styles.footerLeft}>
-          <View style={styles.footerItem}>
-            <Ionicons name="at-outline" size={16} color={colors.outline} />
-            <Text style={[styles.footerText, !reveal && styles.blurred]}>{reveal?.email ?? '••••••@••••••.com'}</Text>
-          </View>
-        </View>
+        <Text style={styles.openText}>View profile</Text>
         <View style={styles.footerIcons}>
           <Pressable
             accessibilityRole="button"
@@ -145,10 +143,22 @@ export function ProfileCard({
           >
             <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={19} color={saved ? colors.secondary : colors.outline} />
           </Pressable>
+          <Ionicons name="chevron-forward" size={18} color={colors.outline} />
         </View>
       </View>
     </Pressable>
   );
+}
+
+function getSourceLabel(url?: string | null, sourceType?: string | null): { label: string; icon: keyof typeof Ionicons.glyphMap } {
+  const value = (url ?? '').toLowerCase();
+  if (value.includes('linkedin.com')) return { label: 'LinkedIn', icon: 'logo-linkedin' };
+  if (value.includes('facebook.com')) return { label: 'Facebook', icon: 'logo-facebook' };
+  if (value.includes('instagram.com')) return { label: 'Instagram', icon: 'logo-instagram' };
+  if (value.includes('twitter.com') || value.includes('x.com')) return { label: 'X', icon: 'logo-twitter' };
+  if (sourceType === 'company_site') return { label: 'company website', icon: 'globe-outline' };
+  if (sourceType === 'places') return { label: 'business directory', icon: 'location-outline' };
+  return { label: 'public web', icon: 'search-outline' };
 }
 
 const styles = StyleSheet.create({
@@ -156,7 +166,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
-    borderRadius: radius.xl,
+    borderRadius: radius.lg,
     padding: spacing.cardPadding,
     gap: 12,
   },
@@ -189,7 +199,9 @@ const styles = StyleSheet.create({
   metaCompany: { ...typography.labelMd, color: colors.onSurface, fontWeight: '700' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   metaText: { ...typography.labelSm, color: colors.outline },
-  actionRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: '#eff6ff', borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 4 },
+  sourceText: { ...typography.labelSm, color: colors.onPrimaryContainer, fontWeight: '700' },
+  actionRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   confidenceLabel: { fontSize: 10, fontWeight: '700', color: colors.outline, textTransform: 'uppercase', marginBottom: 4 },
   confidenceBars: { flexDirection: 'row', gap: 3 },
   bar: { height: 5, width: 16, borderRadius: radius.full },
@@ -198,10 +210,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.secondary,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: radius.md,
-    marginLeft: 'auto',
+    marginLeft: 'auto', maxWidth: '100%',
   },
   revealButtonDone: { backgroundColor: colors.surfaceContainerHigh },
   revealText: { ...typography.labelMd, color: colors.onSecondary, fontWeight: '700' },
@@ -215,9 +227,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.outlineVariant,
     paddingTop: 12,
   },
-  footerLeft: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { ...typography.labelMd, color: colors.outline },
-  blurred: { opacity: 0.4 },
+  openText: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '700' },
   footerIcons: { flexDirection: 'row', gap: 12 },
 });
