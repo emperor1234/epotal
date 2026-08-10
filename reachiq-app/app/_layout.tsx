@@ -56,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="search-results" />
             <Stack.Screen name="contact/[id]" />
             <Stack.Screen name="suppression" />
+            <Stack.Screen name="bulk-enrich" />
           </Stack>
         </AuthGate>
       </AuthProvider>

@@ -8,6 +8,7 @@ import { TopBar } from '../../components/TopBar';
 import { ApiRequestError } from '../../config/api';
 import { useAuth } from '../../context/auth';
 import * as searchesApi from '../../data/searches';
+import * as intelligenceApi from '../../data/intelligenceApi';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 
 const SUGGESTIONS = ['Founder', 'Revenue', 'Engineering'];
@@ -34,6 +35,7 @@ export default function SearchScreen() {
   const [excludedKeywords, setExcludedKeywords] = useState('');
   const [sources, setSources] = useState<SearchSource[]>(SOURCES.map((source) => source.key));
   const [includeRelatedTitles, setIncludeRelatedTitles] = useState(true);
+  const [searchMode, setSearchMode] = useState<'people' | 'decision-makers'>('people');
   const [seniority, setSeniority] = useState('Any');
   const [fullCrawl, setFullCrawl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,10 +58,15 @@ export default function SearchScreen() {
       setError('Industry and Country are required.');
       return;
     }
+    if (searchMode === 'decision-makers' && !company.trim()) {
+      setError('Company is required for a decision-maker search.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const { searchQuery } = await withAuth((token) =>
-        searchesApi.createSearch(
+      const { searchQuery } = await withAuth((token) => searchMode === 'decision-makers'
+        ? intelligenceApi.findDecisionMakers({ company: company.trim(), industry: industry.trim(), country: country.trim(), roles: keywords.length ? keywords : ['Founder', 'CEO', 'Director', 'Head'] }, token)
+        : searchesApi.createSearch(
           {
             industry: industry.trim(),
             country: country.trim(),
@@ -72,8 +79,7 @@ export default function SearchScreen() {
             includeRelatedTitles,
             mode: fullCrawl ? 'full_directory' : 'quick',
           },
-          token,
-        ),
+          token),
       );
       router.push({ pathname: '/search-results', params: { searchId: searchQuery.id } });
     } catch (err) {
@@ -92,6 +98,12 @@ export default function SearchScreen() {
           <Text style={styles.title}>Who are you looking for?</Text>
           <Text style={styles.subtitle}>Describe the market and role. ReachIQ searches public professional and company sources.</Text>
         </View>
+
+        <View style={styles.segmented}>
+          {(['people', 'decision-makers'] as const).map((mode) => <Pressable key={mode} onPress={() => setSearchMode(mode)} style={[styles.segment, searchMode === mode && styles.segmentActive]}><Text style={[styles.segmentText, searchMode === mode && styles.segmentTextActive]}>{mode === 'people' ? 'People search' : 'Decision makers'}</Text></Pressable>)}
+        </View>
+
+        <Pressable style={styles.bulkLink} onPress={() => router.push('/bulk-enrich')}><Ionicons name="cloud-upload-outline" size={17} color={colors.secondary} /><Text style={styles.bulkLinkText}>Bulk enrich up to 50 public profiles</Text><Ionicons name="chevron-forward" size={16} color={colors.outline} /></Pressable>
 
         <View style={styles.section}>
           <Text style={styles.label}>Public sources</Text>
@@ -177,7 +189,7 @@ export default function SearchScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Button
-          label="Find prospects"
+          label={searchMode === 'decision-makers' ? 'Find decision makers' : 'Find prospects'}
           variant="primary"
           icon="search"
           loading={submitting}
@@ -289,6 +301,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.md, padding: 14, gap: 16,
   },
   compactToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingHorizontal: 2 },
+  bulkLink: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: radius.md, backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant },
+  bulkLinkText: { ...typography.bodyMd, color: colors.secondary, fontWeight: '700', flex: 1 },
   toggleCopy: { flex: 1, gap: 3 },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   toggleLabel: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },

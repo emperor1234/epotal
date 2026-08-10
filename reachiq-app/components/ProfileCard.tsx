@@ -101,6 +101,12 @@ export function ProfileCard({
 
       <View style={styles.sourceRow}><Ionicons name={source.icon} size={13} color={colors.secondary} /><Text style={styles.sourceText}>Found on {source.label}</Text></View>
 
+      <View style={styles.availabilityRow}>
+        <Ionicons name={contact.emailAvailability === 'needs_company' ? 'alert-circle-outline' : 'mail-outline'} size={14} color={contact.emailAvailability === 'needs_company' ? colors.amber : colors.emerald} />
+        <Text style={styles.availabilityText}>{contact.emailAvailability === 'needs_company' ? 'Employer needed for work email' : contact.emailAvailability === 'verified' ? 'Verified work email available' : 'Work email can be checked'}</Text>
+        {contact.sourceCount > 1 && <Text style={styles.sourceCount}>{contact.sourceCount} sources</Text>}
+      </View>
+
       <View style={styles.actionRow}>
         {reveal && (
           <View>
@@ -201,6 +207,9 @@ const styles = StyleSheet.create({
   metaText: { ...typography.labelSm, color: colors.outline },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: '#eff6ff', borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 4 },
   sourceText: { ...typography.labelSm, color: colors.onPrimaryContainer, fontWeight: '700' },
+  availabilityRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
+  availabilityText: { ...typography.labelSm, color: colors.onSurfaceVariant, fontWeight: '600' },
+  sourceCount: { ...typography.labelSm, color: colors.outline, marginLeft: 'auto' },
   actionRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   confidenceLabel: { fontSize: 10, fontWeight: '700', color: colors.outline, textTransform: 'uppercase', marginBottom: 4 },
   confidenceBars: { flexDirection: 'row', gap: 3 },

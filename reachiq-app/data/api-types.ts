@@ -21,6 +21,10 @@ export type ApiContact = {
   complianceTier: 'STANDARD' | 'CAUTION' | 'RESTRICTED';
   sourceType: string | null;
   sourceUrl: string | null;
+  sourceCount: number;
+  emailAvailability: 'unknown' | 'needs_company' | 'likely_work_email' | 'verified';
+  lastSeenAt: string;
+  refreshedAt: string;
   createdAt: string;
 };
 

@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { getComplianceTier } from '../suppression/suppression.service';
 import { createIngestionOrchestrator } from './ingestion.factory';
 import { ScrapedCandidate, ScrapeTarget } from './ingestion/ingestion-source.interface';
+import { buildCanonicalContactKey } from './entity-resolution.service';
 
 export async function createSearchQuery(userId: string, target: ScrapeTarget) {
   return prisma.searchQuery.create({
@@ -68,14 +69,11 @@ async function persistCandidate(searchQueryId: string, candidate: ScrapedCandida
       })
     : null;
 
+  const canonicalKey = buildCanonicalContactKey(candidate);
   const contact = await prisma.contact.upsert({
-    where: {
-      sourceType_sourceUrl_fullName: {
-        sourceType: candidate.sourceType,
-        sourceUrl: candidate.sourceUrl,
-        fullName: candidate.fullName,
-      },
-    },
+    where: canonicalKey
+      ? { canonicalKey }
+      : { sourceType_sourceUrl_fullName: { sourceType: candidate.sourceType, sourceUrl: candidate.sourceUrl, fullName: candidate.fullName } },
     create: {
       fullName: candidate.fullName,
       firstName,
@@ -87,11 +85,24 @@ async function persistCandidate(searchQueryId: string, candidate: ScrapedCandida
       complianceTier: getComplianceTier(target.country),
       sourceType: candidate.sourceType,
       sourceUrl: candidate.sourceUrl,
+      canonicalKey,
+      emailAvailability: company ? 'likely_work_email' : 'needs_company',
     },
     update: {
       jobTitle: candidate.jobTitle ?? undefined,
+      companyId: company?.id ?? undefined,
+      emailAvailability: company ? 'likely_work_email' : undefined,
+      lastSeenAt: new Date(),
+      refreshedAt: new Date(),
     },
   });
+
+  const evidence = await prisma.contactSourceEvidence.createMany({
+    data: [{ contactId: contact.id, sourceType: candidate.sourceType, sourceUrl: candidate.sourceUrl }],
+    skipDuplicates: true,
+  });
+  if (evidence.count > 0) await prisma.contact.update({ where: { id: contact.id }, data: { sourceCount: { increment: 1 } } });
+  else await prisma.contactSourceEvidence.update({ where: { contactId_sourceUrl: { contactId: contact.id, sourceUrl: candidate.sourceUrl } }, data: { lastSeenAt: new Date() } });
 
   const result = await prisma.searchResult.createMany({
     data: [{ searchQueryId, contactId: contact.id }],

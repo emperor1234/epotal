@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   // DATABASE_URL: pooled connection (Neon's "-pooler" host, via PgBouncer)
   // for normal app queries. DIRECT_URL: the unpooled connection, used only
   // for `prisma migrate` — PgBouncer's transaction pooling mode doesn't
@@ -13,10 +13,10 @@ datasource db {
 }
 
 model User {
-  id             String                    @id @default(cuid())
-  email          String                    @unique
+  id             String                   @id @default(cuid())
+  email          String                   @unique
   passwordHash   String
-  createdAt      DateTime                  @default(now())
+  createdAt      DateTime                 @default(now())
   wallet         CreditWallet?
   reveals        ContactReveal[]
   searchQueries  SearchQuery[]
@@ -69,9 +69,9 @@ enum ComplianceTier {
 }
 
 model Company {
-  id           String                @id @default(cuid())
+  id           String               @id @default(cuid())
   name         String
-  domain       String                @unique
+  domain       String               @unique
   industry     String?
   country      String?
   sizeRange    String?
@@ -90,26 +90,45 @@ model CompanyEmailPattern {
 }
 
 model Contact {
-  id             String                   @id @default(cuid())
-  fullName       String
-  firstName      String
-  lastName       String
-  jobTitle       String?
-  seniority      String?
-  companyId      String?
-  company        Company?                 @relation(fields: [companyId], references: [id])
-  country        String?
-  industry       String?
-  complianceTier ComplianceTier           @default(STANDARD)
-  sourceType     String?
-  sourceUrl      String?
-  createdAt      DateTime                 @default(now())
-  reveals        ContactReveal[]
-  descriptions   UserContactDescription[]
-  searchResults  SearchResult[]
+  id                String                   @id @default(cuid())
+  fullName          String
+  firstName         String
+  lastName          String
+  jobTitle          String?
+  seniority         String?
+  companyId         String?
+  company           Company?                 @relation(fields: [companyId], references: [id])
+  country           String?
+  industry          String?
+  complianceTier    ComplianceTier           @default(STANDARD)
+  sourceType        String?
+  sourceUrl         String?
+  canonicalKey      String?                  @unique
+  sourceCount       Int                      @default(0)
+  emailAvailability String                   @default("unknown")
+  lastSeenAt        DateTime                 @default(now())
+  refreshedAt       DateTime                 @default(now())
+  createdAt         DateTime                 @default(now())
+  reveals           ContactReveal[]
+  descriptions      UserContactDescription[]
+  searchResults     SearchResult[]
+  sourceEvidence    ContactSourceEvidence[]
 
-  @@index([industry, country])
   @@unique([sourceType, sourceUrl, fullName])
+  @@index([industry, country])
+}
+
+model ContactSourceEvidence {
+  id          String   @id @default(cuid())
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  sourceType  String
+  sourceUrl   String
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([contactId, sourceUrl])
+  @@index([sourceType, lastSeenAt])
 }
 
 model ContactReveal {
@@ -157,13 +176,13 @@ model SuppressionEntry {
 }
 
 model SearchQuery {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
   filters     Json
   status      String
-  resultCount Int      @default(0)
-  createdAt   DateTime @default(now())
+  resultCount Int            @default(0)
+  createdAt   DateTime       @default(now())
   results     SearchResult[]
 }
 

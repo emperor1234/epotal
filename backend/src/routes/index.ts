@@ -6,6 +6,7 @@ import { contactsRouter } from '../modules/contacts/contacts.controller';
 import { creditsRouter } from '../modules/credits/credits.controller';
 import { searchRouter } from '../modules/discovery/search.controller';
 import { suppressionRouter } from '../modules/suppression/suppression.controller';
+import { intelligenceRouter } from '../modules/discovery/intelligence.controller';
 
 export const apiRouter = Router();
 
@@ -16,3 +17,4 @@ apiRouter.use('/contacts', contactsRouter);
 apiRouter.use('/credits', creditsRouter);
 apiRouter.use('/ai', aiRouter);
 apiRouter.use('/suppression', suppressionRouter);
+apiRouter.use('/intelligence', intelligenceRouter);

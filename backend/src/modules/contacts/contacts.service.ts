@@ -56,7 +56,7 @@ export async function revealContact(userId: string, contactId: string) {
       create: { domain: resolved.domain, name: resolved.companyName, industry: contact.industry, country: contact.country },
       update: {},
     });
-    await prisma.contact.update({ where: { id: contact.id }, data: { companyId: company.id } });
+    await prisma.contact.update({ where: { id: contact.id }, data: { companyId: company.id, emailAvailability: 'likely_work_email', refreshedAt: new Date() } });
   }
 
   const reservation = await creditLedger.reserveCredits(userId, contactId);
@@ -88,6 +88,7 @@ export async function revealContact(userId: string, contactId: string) {
     });
 
     await creditLedger.settleReservation(reservation.id);
+    await prisma.contact.update({ where: { id: contact.id }, data: { emailAvailability: resolution.verificationStatus === 'valid' ? 'verified' : 'likely_work_email', refreshedAt: new Date() } });
     return reveal;
   } catch (err) {
     // Ensure the reservation doesn't leak as PENDING credits on any failure

@@ -4,6 +4,7 @@ import { logger } from './lib/logger';
 import { prisma } from './lib/prisma';
 import { redis } from './lib/redis';
 import { startSearchWorker } from './queues/worker';
+import { startContactIndexMaintenance } from './modules/discovery/contact-index.service';
 
 async function main() {
   const app = createApp();
@@ -13,10 +14,12 @@ async function main() {
   });
 
   const worker = startSearchWorker();
+  const stopIndexMaintenance = startContactIndexMaintenance();
 
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully`);
     server.close();
+    stopIndexMaintenance();
     await Promise.all([worker.close(), prisma.$disconnect(), redis.quit()]);
     process.exit(0);
   };
