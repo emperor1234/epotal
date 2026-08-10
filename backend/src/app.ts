@@ -24,6 +24,11 @@ async function withTimeout<T>(operation: Promise<T>): Promise<T> {
 export function createApp() {
   const app = express();
 
+  // Coolify's reverse proxy is the direct peer of this container. Trust that
+  // single hop so Express and express-rate-limit use the forwarded client IP
+  // without treating the proxy header as a configuration error.
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(cors());
   app.use(compression());

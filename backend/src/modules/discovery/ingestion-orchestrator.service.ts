@@ -19,8 +19,14 @@ export class IngestionOrchestrator {
     // request shape should silently trigger an hours-long crawl.
     if (target.mode === 'full_directory') {
       for (const directory of this.directories) {
-        for await (const listings of directory.streamCandidates(target)) {
-          yield* this.resolveStaffForEach(listings);
+        try {
+          for await (const listings of directory.streamCandidates(target)) {
+            yield* this.resolveStaffForEach(listings);
+          }
+        } catch (err) {
+          // A third-party directory being blocked or changing markup must not
+          // discard results from places, company sites, and public search.
+          logger.warn({ directory: directory.name, err }, 'Directory source failed; continuing with remaining sources');
         }
       }
     }

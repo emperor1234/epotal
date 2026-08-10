@@ -19,9 +19,13 @@ export class DirectoryCrawlProgressService {
   }
 
   async markComplete(key: CrawlKey): Promise<void> {
-    await prisma.directoryCrawlProgress.update({
+    // A directory can be blocked before the first successful page is
+    // checkpointed. Upsert here so finishing/skipping that crawl is
+    // idempotent instead of throwing P2025 for a missing progress row.
+    await prisma.directoryCrawlProgress.upsert({
       where: { directoryId_industrySlug_locationSlug: key },
-      data: { status: 'complete' },
+      create: { ...key, lastPage: 0, status: 'complete' },
+      update: { status: 'complete' },
     });
   }
 }
