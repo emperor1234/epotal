@@ -43,11 +43,13 @@ export class OverpassPlacesIngestionSource implements IngestionSource {
     // maintain it" tradeoff the original scraping design called out.
     return `
       [out:json][timeout:25];
-      area["name:en"="${country}"]["boundary"="administrative"]["admin_level"="2"]->.country;
+      area["name"~"^${country}$",i]["boundary"="administrative"]["admin_level"="2"]->.country;
       (
         nwr["name"~"${industry}",i]["office"](area.country);
         nwr["name"~"${industry}",i]["shop"](area.country);
         nwr["name"~"${industry}",i]["amenity"](area.country);
+        nwr["office"~"${industry}",i](area.country);
+        nwr["craft"~"${industry}",i](area.country);
       );
       out center ${RESULT_LIMIT} tags;
     `;

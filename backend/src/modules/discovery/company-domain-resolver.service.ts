@@ -8,8 +8,8 @@ const EXCLUDED_HOSTS = /(^|\.)(linkedin|facebook|instagram|twitter|x|youtube|git
 type SearchResult = { title?: string; url?: string; content?: string };
 
 export class CompanyDomainResolver {
-  async resolve(input: { fullName: string; jobTitle?: string | null }): Promise<{ companyName: string; domain: string } | null> {
-    const companyName = inferCompanyName(input.jobTitle) ?? (await this.findCompanyName(input.fullName));
+  async resolve(input: { fullName: string; jobTitle?: string | null; companyName?: string | null }): Promise<{ companyName: string; domain: string } | null> {
+    const companyName = cleanCompanyName(input.companyName) ?? inferCompanyName(input.jobTitle) ?? (await this.findCompanyName(input.fullName));
     if (!companyName) return null;
 
     const results = await this.search(`"${companyName}" official website`);
@@ -40,12 +40,17 @@ export class CompanyDomainResolver {
 
   private async search(query: string): Promise<SearchResult[]> {
     const configured = new URL(env.SEARXNG_URL);
-    const bases = [configured];
+    const bases: URL[] = [];
     if (configured.port) {
       const publicBase = new URL(configured);
       publicBase.port = '';
+      if (publicBase.protocol === 'http:') publicBase.protocol = 'https:';
       bases.push(publicBase);
+      const httpPublicBase = new URL(publicBase);
+      httpPublicBase.protocol = 'http:';
+      bases.push(httpPublicBase);
     }
+    bases.push(configured);
 
     for (const base of bases) {
       const url = new URL('/search', base);
@@ -71,4 +76,12 @@ export class CompanyDomainResolver {
       return null;
     }
   }
+}
+
+function cleanCompanyName(value?: string | null): string | null {
+  const cleaned = value
+    ?.replace(/\s+(?:on LinkedIn|\| LinkedIn).*$/i, '')
+    .replace(/\s+(?:specializing|providing|offering|offers|based in)\b.*$/i, '')
+    .trim();
+  return cleaned && cleaned.length >= 2 && cleaned.length <= 120 ? cleaned : null;
 }

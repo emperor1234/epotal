@@ -80,6 +80,7 @@ async function persistCandidate(searchQueryId: string, candidate: ScrapedCandida
       lastName,
       jobTitle: candidate.jobTitle,
       companyId: company?.id,
+      companyNameHint: candidate.companyName,
       country: target.country,
       industry: target.industry,
       complianceTier: getComplianceTier(target.country),
@@ -91,6 +92,7 @@ async function persistCandidate(searchQueryId: string, candidate: ScrapedCandida
     update: {
       jobTitle: candidate.jobTitle ?? undefined,
       companyId: company?.id ?? undefined,
+      companyNameHint: candidate.companyName ?? undefined,
       emailAvailability: company ? 'likely_work_email' : undefined,
       lastSeenAt: new Date(),
       refreshedAt: new Date(),

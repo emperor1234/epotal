@@ -3,7 +3,7 @@ import { logger } from '../../../lib/logger';
 import { IngestionSource, ScrapedCandidate, ScrapeTarget } from './ingestion-source.interface';
 import { parseNameTitleFromSnippet } from './parsers';
 
-const MAX_PAGES_PER_QUERY = 3;
+const MAX_PAGES_PER_QUERY = 5;
 const SEARCH_TIMEOUT_MS = 15_000;
 
 interface SearxngResult {
@@ -58,6 +58,7 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       sources.has('x') && '(site:x.com OR site:twitter.com)',
     ].filter(Boolean).join(' OR ');
     const keywordScope = sources.has('web') || !selectedSites ? '' : `(${selectedSites})`;
+    const focusedRoles = target.keywords?.length ? target.keywords : target.jobTitle ? [target.jobTitle] : ['Founder', 'CEO', 'Director', 'Manager', 'Owner'];
     return [
       // Only public search-result metadata is consumed. We never sign in to,
       // bypass access controls on, or fetch profile pages from these services.
@@ -66,6 +67,10 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       sources.has('instagram') && `site:instagram.com ${base} ${roleTerms} ${exclusions}`,
       sources.has('x') && `(site:x.com OR site:twitter.com) ${base} ${roleTerms} ${exclusions}`,
       sources.has('web') && `${base} ${roleTerms} ("our team" OR "meet the team") ${exclusions}`,
+      ...focusedRoles.flatMap((role) => [
+        sources.has('linkedin') && `site:linkedin.com/in ${base} ${quote(role)} ${exclusions}`,
+        sources.has('web') && `${base} ${quote(role)} ("team" OR "leadership") ${exclusions}`,
+      ]),
       ...(target.keywords ?? []).map((keyword) => `${keywordScope} ${base} ${quote(keyword)} ${exclusions}`),
     ].filter((query): query is string => Boolean(query));
   }
@@ -90,11 +95,18 @@ export class SearxngSearchIngestionSource implements IngestionSource {
     // accidentally configured container port instead of making every search
     // silently empty (the previous production configuration did exactly this).
     if (!response && configuredUrl.port) {
-      const publicUrl = new URL(configuredUrl);
-      publicUrl.port = '';
+      const publicUrl = publicCoolifyUrl(configuredUrl);
       logger.warn({ configuredUrl: configuredUrl.origin, fallbackUrl: publicUrl.origin }, 'Retrying SearXNG on its public port');
       const fallbackResponse = await this.fetchSearch(publicUrl, query, page);
       if (fallbackResponse?.ok) this.preferredBaseUrl = publicUrl;
+      if (fallbackResponse?.ok) return this.readResults(fallbackResponse, query, page);
+      if (publicUrl.protocol === 'https:') {
+        const httpPublicUrl = new URL(publicUrl);
+        httpPublicUrl.protocol = 'http:';
+        const httpResponse = await this.fetchSearch(httpPublicUrl, query, page);
+        if (httpResponse?.ok) this.preferredBaseUrl = httpPublicUrl;
+        return this.readResults(httpResponse, query, page);
+      }
       return this.readResults(fallbackResponse, query, page);
     }
 
@@ -121,6 +133,13 @@ export class SearxngSearchIngestionSource implements IngestionSource {
     const body = (await response.json()) as { results?: SearxngResult[] };
     return body.results ?? [];
   }
+}
+
+function publicCoolifyUrl(configured: URL): URL {
+  const url = new URL(configured);
+  url.port = '';
+  if (url.protocol === 'http:') url.protocol = 'https:';
+  return url;
 }
 
 const NON_COMPANY_HOSTS = /(^|\.)(linkedin|facebook|instagram|twitter|x|youtube|github|wikipedia|yellowpages)\.com$/i;

@@ -13,12 +13,19 @@ export function extractStaffFromPageHtml(html: string): { fullName: string; jobT
   for (const block of cardMatches) {
     const nameMatch = /<h\d[^>]*>([^<]{2,60})<\/h\d>/i.exec(block[0]);
     const titleMatch = /<p[^>]*>([^<]{2,80})<\/p>/i.exec(block[0]);
-    if (nameMatch) {
-      results.push({ fullName: decodeHtmlEntities(nameMatch[1]).trim(), jobTitle: titleMatch ? decodeHtmlEntities(titleMatch[1]).trim() : undefined });
+    const fullName = nameMatch ? decodeHtmlEntities(nameMatch[1]).trim() : '';
+    if (isPlausiblePersonName(fullName)) {
+      results.push({ fullName, jobTitle: titleMatch ? decodeHtmlEntities(titleMatch[1]).trim() : undefined });
     }
   }
 
   return results;
+}
+
+function isPlausiblePersonName(value: string): boolean {
+  if (value.length < 4 || value.length > 70 || /[&@]|\b(?:services|construction|company|inc|llc|ltd|team|about)\b/i.test(value)) return false;
+  const words = value.split(/\s+/);
+  return words.length >= 2 && words.length <= 5 && words.every((word) => /^[\p{L}][\p{L}'.-]*$/u.test(word));
 }
 
 // Search-result titles (SearXNG, and any search backend) are commonly

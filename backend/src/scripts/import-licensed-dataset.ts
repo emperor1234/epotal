@@ -94,6 +94,7 @@ async function importRow(row: ImportRow, datasetImportId: string) {
       lastName: nameParts.at(-1) ?? '',
       jobTitle: row.jobTitle,
       companyId: company.id,
+      companyNameHint: row.companyName,
       country: row.country,
       industry: row.industry,
       complianceTier: getComplianceTier(row.country ?? ''),
@@ -105,6 +106,7 @@ async function importRow(row: ImportRow, datasetImportId: string) {
     update: {
       jobTitle: row.jobTitle ?? undefined,
       companyId: company.id,
+      companyNameHint: row.companyName,
       country: row.country ?? undefined,
       industry: row.industry ?? undefined,
       lastSeenAt: new Date(),

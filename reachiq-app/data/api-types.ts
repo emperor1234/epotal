@@ -15,6 +15,7 @@ export type ApiContact = {
   jobTitle: string | null;
   seniority: string | null;
   companyId: string | null;
+  companyNameHint: string | null;
   company: ApiCompany | null;
   country: string | null;
   industry: string | null;

@@ -60,6 +60,7 @@ export class PatternGuessResolver {
     const candidates = known
       ? [{ id: known.template, build: this.templateBuilder(known.template), weight: 1 }]
       : [...PATTERN_TEMPLATES].sort((a, b) => b.weight - a.weight);
+    let inferredFallback: EmailResolutionResult | null = null;
 
     for (const template of candidates) {
       const localPart = template.build(first, last);
@@ -92,10 +93,22 @@ export class PatternGuessResolver {
         }
         continue;
       }
+      if (verification.status === 'unknown' && !inferredFallback) {
+        // A missing/unavailable verifier must not make every reveal impossible.
+        // Preserve the highest-probability pattern, clearly marked unknown and
+        // with conservative confidence, while still trying every candidate in
+        // case a later one can be verified.
+        inferredFallback = {
+          email: candidateEmail,
+          confidence: known ? 0.6 : Math.min(0.45, template.weight),
+          pattern: template.id,
+          verificationStatus: 'unknown',
+        };
+      }
       // 'unknown'/invalid -> try next template
     }
 
-    return null;
+    return inferredFallback;
   }
 
   private templateBuilder(templateId: string): (f: string, l: string) => string {

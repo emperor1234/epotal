@@ -68,7 +68,7 @@ searchRouter.get(
       where: { searchQueryId: searchQuery.id },
       include: { contact: { include: { company: true } } },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 200,
     });
     const contacts = results.map((result) => result.contact);
 

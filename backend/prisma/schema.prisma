@@ -131,6 +131,7 @@ model Contact {
   jobTitle          String?
   seniority         String?
   companyId         String?
+  companyNameHint   String?
   company           Company?                 @relation(fields: [companyId], references: [id])
   country           String?
   industry          String?

@@ -69,6 +69,7 @@ intelligenceRouter.post('/bulk-enrich', asyncHandler(async (req, res) => {
         lastName: nameParts.at(-1) ?? '',
         jobTitle: record.jobTitle,
         companyId: company?.id,
+        companyNameHint: record.companyName,
         country: record.country,
         industry: record.industry,
         sourceType: 'user_import',
@@ -79,6 +80,7 @@ intelligenceRouter.post('/bulk-enrich', asyncHandler(async (req, res) => {
       update: {
         jobTitle: record.jobTitle ?? undefined,
         companyId: company?.id ?? undefined,
+        companyNameHint: record.companyName ?? undefined,
         country: record.country ?? undefined,
         industry: record.industry ?? undefined,
         lastSeenAt: new Date(),

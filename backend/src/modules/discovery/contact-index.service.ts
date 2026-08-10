@@ -18,7 +18,7 @@ export async function refreshStaleContactIndex(limit = 50): Promise<number> {
     let companyId = contact.companyId;
     let availability = contact.company ? 'likely_work_email' : 'needs_company';
     if (!contact.company) {
-      const resolved = await resolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle });
+      const resolved = await resolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle, companyName: contact.companyNameHint });
       if (resolved) {
         const company = await prisma.company.upsert({
           where: { domain: resolved.domain },

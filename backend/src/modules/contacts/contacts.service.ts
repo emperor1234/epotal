@@ -49,7 +49,7 @@ export async function revealContact(userId: string, contactId: string) {
   const contact = await getContact(contactId);
   let company = contact.company;
   if (!company) {
-    const resolved = await companyDomainResolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle });
+    const resolved = await companyDomainResolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle, companyName: contact.companyNameHint });
     if (!resolved) throw ApiError.notFound('Could not identify this contact’s company website from public sources');
     company = await prisma.company.upsert({
       where: { domain: resolved.domain },
