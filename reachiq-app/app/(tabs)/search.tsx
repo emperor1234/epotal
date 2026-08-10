@@ -12,12 +12,13 @@ import { colors, radius, spacing, typography } from '../../theme/tokens';
 
 const SUGGESTIONS = ['Founder', 'Revenue', 'Engineering'];
 const SENIORITY = ['Any', 'Manager', 'Director', 'Executive'];
-const SOURCES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: 'logo-linkedin', label: 'LinkedIn' },
-  { icon: 'logo-facebook', label: 'Facebook' },
-  { icon: 'logo-instagram', label: 'Instagram' },
-  { icon: 'logo-twitter', label: 'X' },
-  { icon: 'globe-outline', label: 'Company sites' },
+type SearchSource = 'linkedin' | 'facebook' | 'instagram' | 'x' | 'web';
+const SOURCES: { key: SearchSource; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { key: 'linkedin', icon: 'logo-linkedin', label: 'LinkedIn' },
+  { key: 'facebook', icon: 'logo-facebook', label: 'Facebook' },
+  { key: 'instagram', icon: 'logo-instagram', label: 'Instagram' },
+  { key: 'x', icon: 'logo-twitter', label: 'X' },
+  { key: 'web', icon: 'globe-outline', label: 'Company sites' },
 ];
 
 export default function SearchScreen() {
@@ -28,6 +29,11 @@ export default function SearchScreen() {
   const [keywordInput, setKeywordInput] = useState('');
   const [industry, setIndustry] = useState('');
   const [country, setCountry] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [company, setCompany] = useState('');
+  const [excludedKeywords, setExcludedKeywords] = useState('');
+  const [sources, setSources] = useState<SearchSource[]>(SOURCES.map((source) => source.key));
+  const [includeRelatedTitles, setIncludeRelatedTitles] = useState(true);
   const [seniority, setSeniority] = useState('Any');
   const [fullCrawl, setFullCrawl] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +46,9 @@ export default function SearchScreen() {
   };
 
   const removeKeyword = (word: string) => setKeywords((k) => k.filter((w) => w !== word));
+  const toggleSource = (source: SearchSource) => {
+    setSources((current) => current.includes(source) ? (current.length === 1 ? current : current.filter((item) => item !== source)) : [...current, source]);
+  };
 
   const handleSearch = async () => {
     setError(null);
@@ -55,7 +64,12 @@ export default function SearchScreen() {
             industry: industry.trim(),
             country: country.trim(),
             seniority,
+            jobTitle: jobTitle.trim() || undefined,
+            company: company.trim() || undefined,
             keywords,
+            excludedKeywords: excludedKeywords.split(/,|\n/).map((word) => word.trim()).filter(Boolean),
+            sources,
+            includeRelatedTitles,
             mode: fullCrawl ? 'full_directory' : 'quick',
           },
           token,
@@ -79,8 +93,14 @@ export default function SearchScreen() {
           <Text style={styles.subtitle}>Describe the market and role. ReachIQ searches public professional and company sources.</Text>
         </View>
 
-        <View style={styles.sourcesRow}>
-          {SOURCES.map((source) => <View key={source.label} style={styles.sourceChip}><Ionicons name={source.icon} size={14} color={colors.onSurfaceVariant} /><Text style={styles.sourceText}>{source.label}</Text></View>)}
+        <View style={styles.section}>
+          <Text style={styles.label}>Public sources</Text>
+          <View style={styles.sourcesRow}>
+          {SOURCES.map((source) => {
+            const active = sources.includes(source.key);
+            return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: active }} onPress={() => toggleSource(source.key)} key={source.key} style={[styles.sourceChip, active && styles.sourceChipActive]}><Ionicons name={source.icon} size={14} color={active ? colors.secondary : colors.onSurfaceVariant} /><Text style={[styles.sourceText, active && styles.sourceTextActive]}>{source.label}</Text>{active && <Ionicons name="checkmark-circle" size={14} color={colors.secondary} />}</Pressable>;
+          })}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -114,8 +134,15 @@ export default function SearchScreen() {
           </View>
         </View>
 
+        <TextField label="Job title" placeholder="e.g. VP Sales or Product Manager" icon="person-outline" value={jobTitle} onChangeText={setJobTitle} />
+        <View style={styles.compactToggleRow}>
+          <View style={styles.toggleCopy}><Text style={styles.toggleLabel}>Include related titles</Text><Text style={styles.toggleDescription}>Also find similar leadership and role names.</Text></View>
+          <Switch value={includeRelatedTitles} onValueChange={setIncludeRelatedTitles} trackColor={{ false: colors.surfaceContainerHigh, true: colors.secondary }} />
+        </View>
+        <TextField label="Current company" placeholder="e.g. Microsoft (optional)" icon="business-outline" value={company} onChangeText={setCompany} />
         <TextField label="Industry" placeholder="e.g. Financial technology" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
         <TextField label="Location" placeholder="e.g. United Kingdom" icon="location-outline" value={country} onChangeText={setCountry} />
+        <TextField label="Exclude keywords" placeholder="e.g. assistant, intern" icon="remove-circle-outline" value={excludedKeywords} onChangeText={setExcludedKeywords} />
 
         <View style={styles.section}>
           <Text style={styles.label}>Seniority Level</Text>
@@ -202,7 +229,9 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.bodyMd, color: colors.onSurfaceVariant },
   sourcesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.outlineVariant, backgroundColor: colors.surfaceContainerLowest, borderRadius: radius.full, paddingHorizontal: 9, paddingVertical: 6 },
+  sourceChipActive: { borderColor: colors.secondary, backgroundColor: '#eff6ff' },
   sourceText: { ...typography.labelSm, color: colors.onSurfaceVariant, fontWeight: '600' },
+  sourceTextActive: { color: colors.secondary, fontWeight: '800' },
   section: { gap: 8 },
   label: { ...typography.labelMd, color: colors.onSurfaceVariant, fontWeight: '700', textTransform: 'none' },
   keywordField: {
@@ -259,6 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between', backgroundColor: colors.surfaceContainerLowest, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.md, padding: 14, gap: 16,
   },
+  compactToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingHorizontal: 2 },
   toggleCopy: { flex: 1, gap: 3 },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   toggleLabel: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },

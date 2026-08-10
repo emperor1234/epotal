@@ -38,17 +38,36 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   }
 
   private buildQueryVariants(target: ScrapeTarget): string[] {
-    const base = `"${target.industry}" "${target.country}"`;
+    const quote = (value: string) => `"${value.replace(/["\\]/g, ' ').trim()}"`;
+    const base = [quote(target.industry), quote(target.country), target.company && quote(target.company)]
+      .filter(Boolean)
+      .join(' ');
+    const exclusions = (target.excludedKeywords ?? []).map((keyword) => `-${quote(keyword)}`).join(' ');
+    const titleTerms = target.jobTitle
+      ? target.includeRelatedTitles
+        ? `(${quote(target.jobTitle)} OR manager OR director OR head OR lead OR executive)`
+        : quote(target.jobTitle)
+      : '(founder OR director OR manager OR CEO)';
+    const seniorityTerm = target.seniority && target.seniority !== 'Any' ? quote(target.seniority) : '';
+    const roleTerms = `${titleTerms} ${seniorityTerm}`.trim();
+    const sources = new Set(target.sources ?? ['linkedin', 'facebook', 'instagram', 'x', 'web']);
+    const selectedSites = [
+      sources.has('linkedin') && 'site:linkedin.com/in',
+      sources.has('facebook') && 'site:facebook.com',
+      sources.has('instagram') && 'site:instagram.com',
+      sources.has('x') && '(site:x.com OR site:twitter.com)',
+    ].filter(Boolean).join(' OR ');
+    const keywordScope = sources.has('web') || !selectedSites ? '' : `(${selectedSites})`;
     return [
       // Only public search-result metadata is consumed. We never sign in to,
       // bypass access controls on, or fetch profile pages from these services.
-      `site:linkedin.com/in ${base}`,
-      `site:facebook.com ${base} (founder OR director OR manager OR CEO)`,
-      `site:instagram.com ${base} (founder OR director OR manager OR CEO)`,
-      `(site:x.com OR site:twitter.com) ${base} (founder OR director OR manager OR CEO)`,
-      `${base} "our team" OR "meet the team"`,
-      ...(target.keywords ?? []).map((keyword) => `${base} "${keyword}"`),
-    ];
+      sources.has('linkedin') && `site:linkedin.com/in ${base} ${roleTerms} ${exclusions}`,
+      sources.has('facebook') && `site:facebook.com ${base} ${roleTerms} ${exclusions}`,
+      sources.has('instagram') && `site:instagram.com ${base} ${roleTerms} ${exclusions}`,
+      sources.has('x') && `(site:x.com OR site:twitter.com) ${base} ${roleTerms} ${exclusions}`,
+      sources.has('web') && `${base} ${roleTerms} ("our team" OR "meet the team") ${exclusions}`,
+      ...(target.keywords ?? []).map((keyword) => `${keywordScope} ${base} ${quote(keyword)} ${exclusions}`),
+    ].filter((query): query is string => Boolean(query));
   }
 
   private toCandidate(result: SearxngResult): ScrapedCandidate | null {

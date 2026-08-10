@@ -2,7 +2,12 @@ export interface ScrapeTarget {
   industry: string;
   country: string;
   seniority?: string;
+  jobTitle?: string;
+  company?: string;
   keywords?: string[];
+  excludedKeywords?: string[];
+  sources?: ('linkedin' | 'facebook' | 'instagram' | 'x' | 'web')[];
+  includeRelatedTitles?: boolean;
   mode: 'quick' | 'full_directory';
 }
 

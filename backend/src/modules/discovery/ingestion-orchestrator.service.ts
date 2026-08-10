@@ -17,7 +17,8 @@ export class IngestionOrchestrator {
     // Directories are the expensive, exhaustive path — only run them when
     // explicitly requested. A 'quick' search stays fast; nothing about the
     // request shape should silently trigger an hours-long crawl.
-    if (target.mode === 'full_directory') {
+    const includeWeb = !target.sources || target.sources.includes('web');
+    if (target.mode === 'full_directory' && includeWeb) {
       for (const directory of this.directories) {
         try {
           for await (const listings of directory.streamCandidates(target)) {
@@ -31,8 +32,10 @@ export class IngestionOrchestrator {
       }
     }
 
-    for await (const businesses of this.places.streamCandidates(target)) {
-      yield* this.resolveStaffForEach(businesses);
+    if (includeWeb) {
+      for await (const businesses of this.places.streamCandidates(target)) {
+        yield* this.resolveStaffForEach(businesses);
+      }
     }
 
     for await (const batch of this.searchEngine.streamCandidates(target)) {
