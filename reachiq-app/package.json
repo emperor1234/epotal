@@ -34,5 +34,8 @@
     "web": "expo start --web",
     "build:web": "expo export --platform web"
   },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "private": true
 }
