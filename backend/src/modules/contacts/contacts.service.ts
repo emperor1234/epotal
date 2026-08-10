@@ -5,8 +5,10 @@ import { isSuppressed } from '../suppression/suppression.service';
 import { CompanyPatternCacheService } from '../discovery/email-resolution/company-pattern-cache.service';
 import { EmailVerificationService } from '../discovery/email-resolution/email-verification.service';
 import { PatternGuessResolver } from '../discovery/email-resolution/pattern-guess.resolver';
+import { CompanyDomainResolver } from '../discovery/company-domain-resolver.service';
 
 const patternGuessResolver = new PatternGuessResolver(new CompanyPatternCacheService(), new EmailVerificationService());
+const companyDomainResolver = new CompanyDomainResolver();
 
 export async function getContact(contactId: string) {
   const contact = await prisma.contact.findUnique({ where: { id: contactId }, include: { company: true } });
@@ -45,10 +47,17 @@ export async function revealContact(userId: string, contactId: string) {
   if (existingReveal) return existingReveal; // already paid for — free re-fetch
 
   const contact = await getContact(contactId);
-  if (!contact.companyId) {
-    throw ApiError.badRequest('Contact has no associated company domain to resolve an email against');
+  let company = contact.company;
+  if (!company) {
+    const resolved = await companyDomainResolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle });
+    if (!resolved) throw ApiError.notFound('Could not identify this contact’s company website from public sources');
+    company = await prisma.company.upsert({
+      where: { domain: resolved.domain },
+      create: { domain: resolved.domain, name: resolved.companyName, industry: contact.industry, country: contact.country },
+      update: {},
+    });
+    await prisma.contact.update({ where: { id: contact.id }, data: { companyId: company.id } });
   }
-  const company = await prisma.company.findUniqueOrThrow({ where: { id: contact.companyId } });
 
   const reservation = await creditLedger.reserveCredits(userId, contactId);
 

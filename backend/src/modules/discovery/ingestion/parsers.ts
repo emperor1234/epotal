@@ -24,12 +24,22 @@ export function extractStaffFromPageHtml(html: string): { fullName: string; jobT
 // Search-result titles (SearXNG, and any search backend) are commonly
 // "Name - Title - Company" or "Name | Title". Used against both the result
 // title and its snippet/content text.
-export function parseNameTitleFromSnippet(text: string): Pick<ScrapedCandidate, 'fullName' | 'jobTitle'> | null {
+export function parseNameTitleFromSnippet(text: string): Pick<ScrapedCandidate, 'fullName' | 'jobTitle' | 'companyName'> | null {
   const parts = text.split(/\s[-|]\s/);
   if (parts.length === 0) return null;
   const fullName = decodeHtmlEntities(parts[0]).trim();
   if (!/^[A-Z][a-zA-Z'.-]+(\s+[A-Z][a-zA-Z'.-]+){1,3}$/.test(fullName)) return null;
-  return { fullName, jobTitle: parts[1] ? decodeHtmlEntities(parts[1]).trim() : undefined };
+  const jobTitle = parts[1] ? decodeHtmlEntities(parts[1]).trim() : undefined;
+  const companyFromTitle = inferCompanyName(jobTitle);
+  const thirdPart = parts[2] ? decodeHtmlEntities(parts[2]).replace(/\s*\|\s*(?:LinkedIn|Facebook).*$/i, '').trim() : undefined;
+  const companyName = companyFromTitle ?? (thirdPart && !/^(?:LinkedIn|Facebook|Instagram|X|Twitter)$/i.test(thirdPart) ? thirdPart : undefined);
+  return { fullName, jobTitle, companyName };
+}
+
+export function inferCompanyName(jobTitle?: string | null): string | undefined {
+  if (!jobTitle) return undefined;
+  const match = /\b(?:at|@)\s+(.{2,100})$/i.exec(jobTitle);
+  return match?.[1].replace(/\s*\|\s*(?:LinkedIn|Facebook).*$/i, '').trim() || undefined;
 }
 
 function decodeHtmlEntities(text: string): string {

@@ -54,7 +54,12 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   private toCandidate(result: SearxngResult): ScrapedCandidate | null {
     const parsed = parseNameTitleFromSnippet(result.title) ?? parseNameTitleFromSnippet(result.content ?? '');
     if (!parsed) return null;
-    return { ...parsed, sourceType: 'search_engine', sourceUrl: result.url };
+    return {
+      ...parsed,
+      companyDomain: publicCompanyHostname(result.url, parsed.companyName),
+      sourceType: 'search_engine',
+      sourceUrl: result.url,
+    };
   }
 
   private async search(query: string, page: number): Promise<SearxngResult[]> {
@@ -96,5 +101,19 @@ export class SearxngSearchIngestionSource implements IngestionSource {
 
     const body = (await response.json()) as { results?: SearxngResult[] };
     return body.results ?? [];
+  }
+}
+
+const NON_COMPANY_HOSTS = /(^|\.)(linkedin|facebook|instagram|twitter|x|youtube|github|wikipedia|yellowpages)\.com$/i;
+
+function publicCompanyHostname(value: string, companyName?: string): string | undefined {
+  if (!companyName) return undefined;
+  try {
+    const hostname = new URL(value).hostname.replace(/^www\./, '').toLowerCase();
+    const compactHostname = hostname.replace(/[^a-z0-9]/g, '');
+    const companyTokens = companyName.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
+    return NON_COMPANY_HOSTS.test(hostname) || !companyTokens.some((token) => compactHostname.includes(token)) ? undefined : hostname;
+  } catch {
+    return undefined;
   }
 }
