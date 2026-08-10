@@ -66,7 +66,7 @@ see `server.ts`) together — this is also directly usable as a Coolify
 **Docker Compose** resource:
 
 1. In Coolify: **New Resource → Docker Compose**, point it at this repo/subfolder (`backend/`).
-2. Set the real secrets as environment variables on the resource (Coolify injects them into every service): `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY_BASE64`, `ZEROBOUNCE_API_KEY` (optional). Generate fresh values — don't reuse the ones in your local `.env`:
+2. Set the real secrets as environment variables on the resource (Coolify injects them into every service): `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY_BASE64`, `REACHER_URL` (recommended), and `ZEROBOUNCE_API_KEY` (optional fallback). Generate fresh values — don't reuse the ones in your local `.env`:
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # ENCRYPTION_KEY_BASE64
    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"      # JWT_*_SECRET (run twice)
@@ -77,6 +77,20 @@ see `server.ts`) together — this is also directly usable as a Coolify
    `DIRECT_URL`, while the running API uses `DATABASE_URL`.
 3. Deploy. Coolify builds the image once, starts `redis`, runs `migrate` to completion, then starts `api`. Redis data persists via the named volume.
 4. Point your reverse proxy / domain at the `api` service's port `4000`.
+
+### Self-hosted email verification
+
+Deploy `reacherhq/backend:latest` as a private Coolify service with port
+`8080` exposed and the network alias `reacher`, then set this backend's
+`REACHER_URL=http://reacher:8080`. No public domain or host port mapping is
+required when both services share a Coolify network. The Reacher host must be
+allowed to make outbound TCP connections on port 25; otherwise SMTP checks
+will return unknown. ReachIQ falls back to ZeroBounce when its key is set and
+Reacher returns unknown or is unavailable, and otherwise keeps the inferred
+address clearly unverified rather than claiming it is deliverable.
+
+Reacher uses a dual AGPL/commercial license. Confirm that your deployment's
+license is compatible with your application before using it commercially.
 
 Or as a plain Coolify **Dockerfile** app instead of Compose (what you get
 if you connect the repo directly rather than pointing at the compose file)

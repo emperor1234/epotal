@@ -15,6 +15,9 @@ const schema = z.object({
 
   ENCRYPTION_KEY_BASE64: z.string().min(1),
 
+  // Self-hosted Reacher HTTP backend. Leave empty to disable it and use the
+  // optional ZeroBounce fallback instead.
+  REACHER_URL: z.union([z.literal(''), z.string().url()]).default(''),
   ZEROBOUNCE_API_KEY: z.string().optional().default(''),
 
   SCRAPE_DELAY_MIN_MS: z.coerce.number().default(1500),

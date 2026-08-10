@@ -9,6 +9,18 @@ export interface VerificationResult {
   reason?: string;
 }
 
+interface ReacherResponse {
+  is_reachable?: 'safe' | 'risky' | 'invalid' | 'unknown';
+  syntax?: { is_valid_syntax?: boolean };
+  mx?: { accepts_mail?: boolean };
+  smtp?: {
+    is_catch_all?: boolean;
+    is_deliverable?: boolean;
+    is_disabled?: boolean;
+    has_full_inbox?: boolean;
+  };
+}
+
 const TTL_BY_STATUS: Record<VerificationStatus, number> = {
   valid: 60 * 60 * 24 * 30, // 30 days — verified addresses rarely change
   invalid: 60 * 60 * 24 * 30,
@@ -28,26 +40,63 @@ export class EmailVerificationService {
   }
 
   private async callProvider(email: string): Promise<VerificationResult> {
-    if (!env.ZEROBOUNCE_API_KEY) {
-      // No provider configured — fail open rather than block the pipeline.
-      return { status: 'unknown', reason: 'verification_provider_not_configured' };
+    if (env.REACHER_URL) {
+      const reacherResult = await this.callReacher(email);
+      if (reacherResult.status !== 'unknown' || !env.ZEROBOUNCE_API_KEY) {
+        return reacherResult;
+      }
     }
 
+    if (env.ZEROBOUNCE_API_KEY) return this.callZeroBounce(email);
+
+    // No provider configured — fail open rather than block the pipeline.
+    return { status: 'unknown', reason: 'verification_provider_not_configured' };
+  }
+
+  private async callReacher(email: string): Promise<VerificationResult> {
+    try {
+      const endpoint = `${env.REACHER_URL.replace(/\/$/, '')}/v0/check_email`;
+      const { data } = await axios.post<ReacherResponse>(endpoint, { to_email: email }, {
+        timeout: 15_000,
+      });
+      return this.mapReacherStatus(data);
+    } catch (err) {
+      logger.warn({ email, err }, 'Reacher verification provider error');
+      return { status: 'unknown', reason: 'reacher_unavailable' };
+    }
+  }
+
+  private mapReacherStatus(data: ReacherResponse): VerificationResult {
+    if (data.syntax?.is_valid_syntax === false) {
+      return { status: 'invalid', reason: 'invalid_syntax' };
+    }
+    if (data.mx?.accepts_mail === false) {
+      return { status: 'invalid', reason: 'domain_does_not_accept_mail' };
+    }
+    if (data.smtp?.is_catch_all) return { status: 'catch_all' };
+    if (data.is_reachable === 'safe' || data.smtp?.is_deliverable === true) {
+      return { status: 'valid' };
+    }
+    if (data.is_reachable === 'invalid' || data.smtp?.is_disabled || data.smtp?.has_full_inbox) {
+      return { status: 'invalid', reason: data.smtp?.is_disabled ? 'mailbox_disabled' : 'mailbox_unreachable' };
+    }
+    return { status: 'unknown', reason: `reacher_${data.is_reachable ?? 'unknown'}` };
+  }
+
+  private async callZeroBounce(email: string): Promise<VerificationResult> {
     try {
       const { data } = await axios.get('https://api.zerobounce.net/v2/validate', {
         params: { api_key: env.ZEROBOUNCE_API_KEY, email },
         timeout: 5000,
       });
-      return this.mapStatus(data.status, data.sub_status);
+      return this.mapZeroBounceStatus(data.status, data.sub_status);
     } catch (err) {
-      logger.warn({ email, err }, 'Verification provider error');
-      // Fail open to 'unknown' rather than blocking the whole discovery
-      // pipeline on a verification-provider outage.
-      return { status: 'unknown', reason: 'verification_service_unavailable' };
+      logger.warn({ email, err }, 'ZeroBounce verification provider error');
+      return { status: 'unknown', reason: 'zerobounce_unavailable' };
     }
   }
 
-  private mapStatus(status: string, subStatus: string): VerificationResult {
+  private mapZeroBounceStatus(status: string, subStatus: string): VerificationResult {
     if (status === 'valid') return { status: 'valid' };
     if (status === 'catch-all') return { status: 'catch_all' };
     if (status === 'invalid') return { status: 'invalid', reason: subStatus };
