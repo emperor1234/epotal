@@ -2,28 +2,31 @@
 
 Responsive, dependency-free download page for the ReachIQ mobile application.
 
-## Permanent release links
+## Release downloads
 
-The page is already configured for `emperor1234/epotal` and uses GitHub's permanent latest-release URLs:
+The page is configured for `emperor1234/epotal`. It reads the latest release
+through GitHub's API and sends Android visitors to the actual `.apk` asset.
+When a release has no APK, the page says so instead of offering a broken
+download.
 
 - Release page: `https://github.com/emperor1234/epotal/releases/latest`
-- Android APK: `https://github.com/emperor1234/epotal/releases/latest/download/ReachIQ.apk`
-
-Every GitHub Release must attach the Android file with the exact name `ReachIQ.apk`. The landing page will then download the latest version without requiring a redeploy.
 
 ## Publishing a release
 
-1. Build the Android preview APK:
+The `.github/workflows/mobile-release.yml` workflow builds the Expo `preview`
+profile as an installable APK and attaches it to a GitHub release as
+`ReachIQ.apk`. Before using it:
 
-   ```bash
-   cd ../reachiq-app
-   eas build --platform android --profile preview
-   ```
+1. From `reachiq-app/`, run `npx eas-cli init` once and commit the generated
+   `extra.eas.projectId` in `app.json`.
+2. Complete one interactive Android EAS build so Expo can create or register
+   the signing credentials.
+3. Add an Expo access token as the GitHub Actions secret `EXPO_TOKEN`.
+4. Publish a GitHub release, or run **Publish mobile release** manually and
+   provide an existing release tag.
 
-2. Download the completed artifact and rename it to `ReachIQ.apk`.
-3. Create a GitHub release with a semantic tag such as `v1.0.1`.
-4. Upload `ReachIQ.apk` as a release asset and publish the release.
-5. Verify the permanent download URL above.
+The workflow stops with a clear setup error if the Expo project ID or token is
+missing.
 
 ## iPhone distribution
 

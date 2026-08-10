@@ -1,0 +1,67 @@
+name: Publish mobile release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag (for example v1.0.1)
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  android-apk:
+    name: Build and attach Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: reachiq-app
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: reachiq-app/package-lock.json
+
+      - name: Require Expo access token
+        run: test -n "$EXPO_TOKEN" || (echo "Add EXPO_TOKEN under GitHub Settings > Secrets and variables > Actions" && exit 1)
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Expo project is linked
+        run: |
+          node -e "const app=require('./app.json').expo; if (!app.extra?.eas?.projectId) { console.error('Run eas init in reachiq-app and commit the generated projectId before releasing.'); process.exit(1) }"
+
+      - name: Build installable APK on EAS
+        run: eas build --platform android --profile preview --non-interactive --wait --json > /tmp/eas-build.json
+
+      - name: Download APK
+        run: |
+          BUILD_URL=$(jq -r 'if type == "array" then .[0].artifacts.buildUrl else .artifacts.buildUrl end' /tmp/eas-build.json)
+          test -n "$BUILD_URL" && test "$BUILD_URL" != "null"
+          curl --fail --location --retry 3 "$BUILD_URL" --output /tmp/ReachIQ.apk
+
+      - name: Attach APK to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" /tmp/ReachIQ.apk --clobber --repo "$GITHUB_REPOSITORY"

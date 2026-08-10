@@ -180,7 +180,6 @@
   <script>
     const REPOSITORY = 'emperor1234/epotal';
     const LATEST_RELEASE = `https://github.com/${REPOSITORY}/releases/latest`;
-    const LATEST_APK = `https://github.com/${REPOSITORY}/releases/latest/download/ReachIQ.apk`;
     const TESTFLIGHT_URL = ''; // Add the public TestFlight link when it is available.
 
     const icons = {
@@ -199,9 +198,9 @@
 
     if (isAndroid) {
       icon.innerHTML = icons.android;
-      primary.href = LATEST_APK;
-      primary.textContent = 'Download Android APK';
-      copy.textContent = 'Your Android download is ready. The link always points to the newest release.';
+      primary.href = LATEST_RELEASE;
+      primary.textContent = 'Check Android release';
+      copy.textContent = 'Checking GitHub for the newest installable Android build.';
       helper.textContent = 'You may need to allow installation from your browser.';
     } else if (isIOS) {
       icon.innerHTML = icons.apple;
@@ -222,8 +221,28 @@
         if (release.published_at) {
           document.getElementById('release-date').textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(release.published_at));
         }
+        if (isAndroid) {
+          const apk = (release.assets || []).find(asset => /\.apk$/i.test(asset.name));
+          if (apk) {
+            primary.href = apk.browser_download_url;
+            primary.textContent = 'Download Android APK';
+            copy.textContent = 'The latest installable Android release is ready.';
+            helper.textContent = `${apk.name} · ${formatBytes(apk.size)} · Hosted by GitHub`;
+          } else {
+            primary.href = release.html_url || LATEST_RELEASE;
+            primary.textContent = 'Android build not published yet';
+            copy.textContent = 'This release does not contain an APK. Open its release notes for availability details.';
+          }
+        }
       })
       .catch(() => {});
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return 'APK';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / (1024 ** unit)).toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
+    }
   </script>
 </body>
 </html>
