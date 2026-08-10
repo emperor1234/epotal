@@ -69,14 +69,48 @@ enum ComplianceTier {
 }
 
 model Company {
-  id           String               @id @default(cuid())
-  name         String
-  domain       String               @unique
-  industry     String?
-  country      String?
-  sizeRange    String?
-  emailPattern CompanyEmailPattern?
-  contacts     Contact[]
+  id             String                  @id @default(cuid())
+  name           String
+  domain         String                  @unique
+  industry       String?
+  country        String?
+  sizeRange      String?
+  emailPattern   CompanyEmailPattern?
+  contacts       Contact[]
+  sourceEvidence CompanySourceEvidence[]
+}
+
+model DatasetImport {
+  id              String                  @id @default(cuid())
+  name            String
+  sourceUrl       String
+  licenseUrl      String
+  licenseName     String
+  filePath        String
+  format          String
+  status          String                  @default("running")
+  processed       Int                     @default(0)
+  imported        Int                     @default(0)
+  rejected        Int                     @default(0)
+  error           String?                 @db.Text
+  startedAt       DateTime                @default(now())
+  completedAt     DateTime?
+  companyEvidence CompanySourceEvidence[]
+}
+
+model CompanySourceEvidence {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  datasetImportId String?
+  datasetImport   DatasetImport? @relation(fields: [datasetImportId], references: [id], onDelete: SetNull)
+  sourceUrl       String
+  licenseUrl      String
+  firstSeenAt     DateTime       @default(now())
+  lastSeenAt      DateTime       @default(now())
+
+  @@unique([companyId, sourceUrl])
+  @@index([datasetImportId])
 }
 
 model CompanyEmailPattern {

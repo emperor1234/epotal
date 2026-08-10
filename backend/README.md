@@ -112,6 +112,44 @@ All routes are mounted under `/api` and (except `/api/auth/*`) require `Authoriz
 | GET | `/api/credits/wallet` | Credit balance |
 | GET/PUT/DELETE | `/api/ai/key` | Manage BYOK OpenAI key (AES-256-GCM at rest) |
 | GET/POST/DELETE | `/api/suppression` | Manage the suppression list |
+| POST | `/api/intelligence/decision-makers` | Start a company leadership search |
+| POST | `/api/intelligence/bulk-enrich` | Add up to 50 attributed public profiles |
+
+## Importing licensed/open datasets
+
+ReachIQ can stream large CSV or NDJSON files into its company/contact index
+without loading the entire file into memory. Every import requires a source
+URL, license name, and license URL. Records without both a company name and a
+valid company domain are rejected; email and phone fields are deliberately
+ignored until ReachIQ independently resolves and verifies them.
+
+Supported column aliases include:
+
+- Company: `company_name`, `company`, `organization_name`, `name`
+- Domain: `company_domain`, `domain`, `website`, `company_website`
+- Person: `full_name`, `person_name`, `employee_name`
+- Role: `job_title`, `title`, `position`
+- Optional: `industry`, `country`, `company_size`, `source_url`, `profile_url`
+
+Build the backend, then run:
+
+```bash
+npm run build
+npm run ingest:dataset -- \
+  --file /data/companies.csv \
+  --name "Example open company register" \
+  --source "https://publisher.example/dataset" \
+  --license-name "CC BY 4.0" \
+  --license "https://creativecommons.org/licenses/by/4.0/"
+```
+
+Use `--format ndjson` for JSON Lines files. Import progress, rejected rows,
+license provenance, and failures are recorded in `DatasetImport`. Re-imports
+update existing canonical people and companies instead of creating duplicates.
+
+Before importing, confirm that the dataset license permits commercial reuse,
+redistribution inside a SaaS product, and the intended handling of personal
+information. A downloadable file is not necessarily an openly licensed file.
 
 ## Notes on scope
 
