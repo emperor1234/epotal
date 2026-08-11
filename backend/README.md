@@ -73,9 +73,12 @@ see `server.ts`) together — this is also directly usable as a Coolify
    ```
    When using a Coolify PostgreSQL resource, set both `DATABASE_URL` and
    `DIRECT_URL` to its internal connection URL. They can be identical unless
-   `DATABASE_URL` goes through a pooler. The migration service uses
+   `DATABASE_URL` goes through a pooler. The startup migration uses
    `DIRECT_URL`, while the running API uses `DATABASE_URL`.
-3. Deploy. Coolify builds the image once, starts `redis`, runs `migrate` to completion, then starts `api`. Redis data persists via the named volume.
+3. Deploy. Coolify builds the image and starts `redis`; the API container runs
+   `prisma migrate deploy` automatically before starting the server and search
+   worker. If a migration fails, the application does not start with a stale
+   schema. Redis data persists via the named volume.
 4. Point your reverse proxy / domain at the `api` service's port `4000`.
 
 ### Self-hosted email verification
@@ -94,11 +97,10 @@ license is compatible with your application before using it commercially.
 
 Or as a plain Coolify **Dockerfile** app instead of Compose (what you get
 if you connect the repo directly rather than pointing at the compose file)
-— same thing, just bring your own Redis (Upstash, etc.) via `REDIS_URL`
-instead of the Compose file's local Redis container. Either way, run
-`npx prisma migrate deploy` once against the production `DATABASE_URL`
-before the first deploy (Coolify's "Pre-deployment Command" hook works for
-this if you're not using the Compose `migrate` service).
+— same thing, just bring your own Redis via `REDIS_URL` instead of the Compose
+file's local Redis container. The Dockerfile also uses `npm start`, so pending
+migrations run automatically on every deployment. `DIRECT_URL` must be set to
+the direct PostgreSQL connection used by Prisma migrations.
 
 If search volume ever grows enough that scrape jobs start starving the
 HTTP event loop, split the worker back into its own process/service — swap

@@ -14,20 +14,13 @@ services:
       timeout: 5s
       retries: 10
 
-  # One-shot: applies pending migrations against DIRECT_URL, then exits.
-  # api/worker wait for it to succeed so a fresh deploy never races a schema
-  # change.
-  migrate:
-    build: .
-    command: npx prisma migrate deploy
-    env_file: .env
-
   # Single service — server.ts starts the BullMQ search worker in-process
-  # alongside the HTTP server, so there's no separate worker service to run.
+  # alongside the HTTP server. `npm start` deploys pending migrations before
+  # starting either process, so the schema can never lag behind the image.
   api:
     build: .
     restart: unless-stopped
-    command: node dist/server.js
+    command: npm start
     ports:
       - '4000:4000'
     env_file: .env
@@ -36,8 +29,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
 
 volumes:
   redis_data:

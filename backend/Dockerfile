@@ -34,4 +34,6 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 4000
 
-CMD ["node", "dist/server.js"]
+# Apply pending schema migrations before accepting traffic. A failed migration
+# prevents the API/worker from starting with an incompatible database schema.
+CMD ["npm", "start"]
