@@ -83,6 +83,11 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       sources.has('instagram') && `site:instagram.com ${base} ${roleTerms} ${exclusions}`,
       sources.has('x') && `(site:x.com OR site:twitter.com) ${base} ${roleTerms} ${exclusions}`,
       sources.has('web') && `${base} ${roleTerms} ("our team" OR "meet the team") ${exclusions}`,
+      // Find addresses people have intentionally published on public pages.
+      // extractPublicEmail still requires the local part to match the parsed
+      // person's name, preventing unrelated addresses in a result snippet
+      // from being attached to the contact.
+      sources.has('web') && `${base} ${roleTerms} ("@gmail.com" OR "@yahoo.com" OR "@outlook.com" OR "@icloud.com" OR "@proton.me") ${exclusions}`,
       ...focusedRoles.flatMap((role) => [
         sources.has('linkedin') && `site:linkedin.com/in ${base} ${quote(role)} ${exclusions}`,
         sources.has('web') && `${base} ${quote(role)} ("team" OR "leadership") ${exclusions}`,
