@@ -12,6 +12,13 @@ interface SearxngResult {
   content?: string;
 }
 
+type UnresponsiveEngine = [engine: string, reason: string];
+
+interface SearxngResponse {
+  results?: SearxngResult[];
+  unresponsive_engines?: UnresponsiveEngine[];
+}
+
 // Replaces GoogleSearchIngestionSource: queries a self-hosted SearXNG
 // instance's JSON API instead of scraping Google's HTML directly. No
 // proxy pool, no block-detection/retry loop, no artificial delay needed —
@@ -136,7 +143,13 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       return [];
     }
 
-    const body = (await response.json()) as { results?: SearxngResult[] };
+    const body = (await response.json()) as SearxngResponse;
+    if ((body.results?.length ?? 0) === 0 && body.unresponsive_engines?.length) {
+      logger.warn(
+        { query, page, unresponsiveEngines: body.unresponsive_engines },
+        'SearXNG returned no results because upstream engines are unavailable',
+      );
+    }
     return body.results ?? [];
   }
 }
