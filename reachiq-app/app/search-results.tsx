@@ -117,7 +117,7 @@ export default function SearchResultsScreen() {
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={28} color={colors.outline} />
               <Text style={styles.emptyTitle}>No matches yet</Text>
-              <Text style={styles.emptyText}>Try a broader industry, a country instead of a city, or fewer keywords.</Text>
+              <Text style={styles.emptyText}>Try broader keywords, check the country, or select more public sources.</Text>
             </View>
           ) : null
         }

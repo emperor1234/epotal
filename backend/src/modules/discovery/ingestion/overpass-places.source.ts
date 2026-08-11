@@ -36,7 +36,7 @@ export class OverpassPlacesIngestionSource implements IngestionSource {
 
   private buildQuery(target: ScrapeTarget): string {
     const country = escapeOverpassString(target.country);
-    const industry = escapeOverpassString(target.industry);
+    const industry = escapeOverpassString(target.industry ?? target.keywords?.[0] ?? target.jobTitle ?? 'professional');
     // admin_level=2 = country boundary in OSM's convention. Matching by
     // "name:en" is a best-effort approximation — some countries are indexed
     // under a different tag; this is the same "isolated parser, expect to

@@ -11,7 +11,7 @@ export type BulkEnrichmentRecord = {
   sourceUrl: string;
 };
 
-export function findDecisionMakers(input: { company: string; industry: string; country: string; roles: string[] }, token: string) {
+export function findDecisionMakers(input: { company?: string; industry?: string; country: string; roles: string[] }, token: string) {
   return api.post<{ searchQuery: ApiSearchQuery }>('/intelligence/decision-makers', input, token);
 }
 

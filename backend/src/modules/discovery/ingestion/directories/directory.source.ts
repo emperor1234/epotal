@@ -16,7 +16,7 @@ export class DirectoryIngestionSource implements IngestionSource {
   }
 
   async *streamCandidates(target: ScrapeTarget): AsyncGenerator<ScrapedCandidate[]> {
-    const industrySlug = this.definition.industrySlug(target.industry);
+    const industrySlug = this.definition.industrySlug(target.industry ?? target.keywords?.[0] ?? target.jobTitle ?? 'professional');
     const locationSlug = this.definition.locationSlug(target.country);
     const key = { directoryId: this.definition.id, industrySlug, locationSlug };
 

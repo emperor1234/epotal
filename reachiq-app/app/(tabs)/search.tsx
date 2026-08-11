@@ -54,26 +54,23 @@ export default function SearchScreen() {
 
   const handleSearch = async () => {
     setError(null);
-    if (!industry.trim() || !country.trim()) {
-      setError('Industry and Country are required.');
-      return;
-    }
-    if (searchMode === 'decision-makers' && !company.trim()) {
-      setError('Company is required for a decision-maker search.');
+    const submittedKeywords = [...keywords, keywordInput.trim()].filter((word, index, all) => word && all.indexOf(word) === index);
+    if (!country.trim() || submittedKeywords.length === 0) {
+      setError('Country and at least one keyword are required.');
       return;
     }
     setSubmitting(true);
     try {
       const { searchQuery } = await withAuth((token) => searchMode === 'decision-makers'
-        ? intelligenceApi.findDecisionMakers({ company: company.trim(), industry: industry.trim(), country: country.trim(), roles: keywords.length ? keywords : ['Founder', 'CEO', 'Director', 'Head'] }, token)
+        ? intelligenceApi.findDecisionMakers({ company: company.trim() || undefined, industry: industry.trim() || undefined, country: country.trim(), roles: submittedKeywords }, token)
         : searchesApi.createSearch(
           {
-            industry: industry.trim(),
+            industry: industry.trim() || undefined,
             country: country.trim(),
             seniority,
             jobTitle: jobTitle.trim() || undefined,
             company: company.trim() || undefined,
-            keywords,
+            keywords: submittedKeywords,
             excludedKeywords: excludedKeywords.split(/,|\n/).map((word) => word.trim()).filter(Boolean),
             sources,
             includeRelatedTitles,
@@ -116,7 +113,7 @@ export default function SearchScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Keywords</Text>
+          <Text style={styles.label}>Keywords *</Text>
           <View style={styles.keywordField}>
             {keywords.map((word) => (
               <View key={word} style={styles.chip}>
@@ -152,8 +149,8 @@ export default function SearchScreen() {
           <Switch value={includeRelatedTitles} onValueChange={setIncludeRelatedTitles} trackColor={{ false: colors.surfaceContainerHigh, true: colors.secondary }} />
         </View>
         <TextField label="Current company" placeholder="e.g. Microsoft (optional)" icon="business-outline" value={company} onChangeText={setCompany} />
-        <TextField label="Industry" placeholder="e.g. Financial technology" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
-        <TextField label="Location" placeholder="e.g. United Kingdom" icon="location-outline" value={country} onChangeText={setCountry} />
+        <TextField label="Industry (optional)" placeholder="e.g. Financial technology" icon="briefcase-outline" value={industry} onChangeText={setIndustry} />
+        <TextField label="Country *" placeholder="e.g. United Kingdom" icon="location-outline" value={country} onChangeText={setCountry} />
         <TextField label="Exclude keywords" placeholder="e.g. assistant, intern" icon="remove-circle-outline" value={excludedKeywords} onChangeText={setExcludedKeywords} />
 
         <View style={styles.section}>

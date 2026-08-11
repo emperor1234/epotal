@@ -2,12 +2,12 @@ import { api } from '../config/api';
 import { ApiContact, ApiSearchQuery } from './api-types';
 
 export type SearchFilters = {
-  industry: string;
+  industry?: string;
   country: string;
   seniority?: string;
   jobTitle?: string;
   company?: string;
-  keywords?: string[];
+  keywords: string[];
   excludedKeywords?: string[];
   sources?: ('linkedin' | 'facebook' | 'instagram' | 'x' | 'web')[];
   includeRelatedTitles?: boolean;

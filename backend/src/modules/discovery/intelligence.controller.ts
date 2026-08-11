@@ -11,10 +11,10 @@ export const intelligenceRouter = Router();
 intelligenceRouter.use(requireAuth);
 
 const decisionMakerSchema = z.object({
-  company: z.string().trim().min(1).max(120),
-  industry: z.string().trim().min(1).max(120).default('Business'),
+  company: z.string().trim().min(1).max(120).optional(),
+  industry: z.string().trim().min(1).max(120).optional(),
   country: z.string().trim().min(1).max(120),
-  roles: z.array(z.string().trim().min(1).max(80)).min(1).max(12).default(['Founder', 'CEO', 'Director', 'Head']),
+  roles: z.array(z.string().trim().min(1).max(80)).min(1).max(12),
   sources: z.array(z.enum(['linkedin', 'facebook', 'instagram', 'x', 'web'])).min(1).optional(),
 });
 

@@ -11,12 +11,12 @@ export const searchRouter = Router();
 searchRouter.use(requireAuth);
 
 const searchTargetSchema = z.object({
-  industry: z.string().min(1),
-  country: z.string().min(1),
+  industry: z.string().trim().max(120).optional(),
+  country: z.string().trim().min(1).max(120),
   seniority: z.string().optional(),
   jobTitle: z.string().trim().max(120).optional(),
   company: z.string().trim().max(120).optional(),
-  keywords: z.array(z.string()).optional(),
+  keywords: z.array(z.string().trim().min(1).max(80)).min(1).max(20),
   excludedKeywords: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
   sources: z.array(z.enum(['linkedin', 'facebook', 'instagram', 'x', 'web'])).min(1).max(5).optional(),
   includeRelatedTitles: z.boolean().optional(),

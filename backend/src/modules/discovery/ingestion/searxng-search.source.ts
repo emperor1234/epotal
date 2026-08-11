@@ -39,15 +39,20 @@ export class SearxngSearchIngestionSource implements IngestionSource {
 
   private buildQueryVariants(target: ScrapeTarget): string[] {
     const quote = (value: string) => `"${value.replace(/["\\]/g, ' ').trim()}"`;
-    const base = [quote(target.industry), quote(target.country), target.company && quote(target.company)]
+    // Jobs enqueued by an older deployment may predate the required-keywords
+    // contract, so retain a safe fallback while requiring keywords on every
+    // new API request.
+    const keywords = target.keywords?.length ? target.keywords : [target.jobTitle ?? target.industry ?? 'professional'];
+    const base = [target.industry && quote(target.industry), quote(target.country), target.company && quote(target.company)]
       .filter(Boolean)
       .join(' ');
     const exclusions = (target.excludedKeywords ?? []).map((keyword) => `-${quote(keyword)}`).join(' ');
+    const keywordRoles = `(${keywords.map(quote).join(' OR ')})`;
     const titleTerms = target.jobTitle
       ? target.includeRelatedTitles
         ? `(${quote(target.jobTitle)} OR manager OR director OR head OR lead OR executive)`
         : quote(target.jobTitle)
-      : '(founder OR director OR manager OR CEO)';
+      : keywordRoles;
     const seniorityTerm = target.seniority && target.seniority !== 'Any' ? quote(target.seniority) : '';
     const roleTerms = `${titleTerms} ${seniorityTerm}`.trim();
     const sources = new Set(target.sources ?? ['linkedin', 'facebook', 'instagram', 'x', 'web']);
@@ -58,7 +63,7 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       sources.has('x') && '(site:x.com OR site:twitter.com)',
     ].filter(Boolean).join(' OR ');
     const keywordScope = sources.has('web') || !selectedSites ? '' : `(${selectedSites})`;
-    const focusedRoles = target.keywords?.length ? target.keywords : target.jobTitle ? [target.jobTitle] : ['Founder', 'CEO', 'Director', 'Manager', 'Owner'];
+    const focusedRoles = keywords;
     return [
       // Only public search-result metadata is consumed. We never sign in to,
       // bypass access controls on, or fetch profile pages from these services.
@@ -71,7 +76,7 @@ export class SearxngSearchIngestionSource implements IngestionSource {
         sources.has('linkedin') && `site:linkedin.com/in ${base} ${quote(role)} ${exclusions}`,
         sources.has('web') && `${base} ${quote(role)} ("team" OR "leadership") ${exclusions}`,
       ]),
-      ...(target.keywords ?? []).map((keyword) => `${keywordScope} ${base} ${quote(keyword)} ${exclusions}`),
+      ...keywords.map((keyword) => `${keywordScope} ${base} ${quote(keyword)} ${exclusions}`),
     ].filter((query): query is string => Boolean(query));
   }
 
