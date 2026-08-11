@@ -26,6 +26,10 @@ const schema = z.object({
   // Self-hosted SearXNG instance (search step) — must have `json` enabled
   // under `search.formats` in its settings.yml (disabled by default).
   SEARXNG_URL: z.string().url(),
+  // Optional official search provider fallback. This keeps discovery and
+  // company-domain resolution working when public SearXNG engines throttle
+  // or CAPTCHA the server's IP address.
+  BRAVE_SEARCH_API_KEY: z.string().optional().default(''),
   // Public Overpass API (places/business step) — free, no key needed.
   OVERPASS_API_URL: z.string().url().default('https://overpass-api.de/api/interpreter'),
 

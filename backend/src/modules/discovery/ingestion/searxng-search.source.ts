@@ -19,6 +19,10 @@ interface SearxngResponse {
   unresponsive_engines?: UnresponsiveEngine[];
 }
 
+interface BraveSearchResponse {
+  web?: { results?: Array<{ title: string; url: string; description?: string }> };
+}
+
 // Replaces GoogleSearchIngestionSource: queries a self-hosted SearXNG
 // instance's JSON API instead of scraping Google's HTML directly. No
 // proxy pool, no block-detection/retry loop, no artificial delay needed —
@@ -112,18 +116,45 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       logger.warn({ configuredUrl: configuredUrl.origin, fallbackUrl: publicUrl.origin }, 'Retrying SearXNG on its public port');
       const fallbackResponse = await this.fetchSearch(publicUrl, query, page);
       if (fallbackResponse?.ok) this.preferredBaseUrl = publicUrl;
-      if (fallbackResponse?.ok) return this.readResults(fallbackResponse, query, page);
+      if (fallbackResponse?.ok) return this.readResultsWithFallback(fallbackResponse, query, page);
       if (publicUrl.protocol === 'http:') {
         const httpsPublicUrl = new URL(publicUrl);
         httpsPublicUrl.protocol = 'https:';
         const httpsResponse = await this.fetchSearch(httpsPublicUrl, query, page);
         if (httpsResponse?.ok) this.preferredBaseUrl = httpsPublicUrl;
-        return this.readResults(httpsResponse, query, page);
+        return this.readResultsWithFallback(httpsResponse, query, page);
       }
-      return this.readResults(fallbackResponse, query, page);
+      return this.readResultsWithFallback(fallbackResponse, query, page);
     }
 
-    return this.readResults(response, query, page);
+    return this.readResultsWithFallback(response, query, page);
+  }
+
+  private async readResultsWithFallback(response: Response | null, query: string, page: number): Promise<SearxngResult[]> {
+    const results = await this.readResults(response, query, page);
+    return results.length > 0 || !env.BRAVE_SEARCH_API_KEY ? results : this.searchBrave(query, page);
+  }
+
+  private async searchBrave(query: string, page: number): Promise<SearxngResult[]> {
+    const url = new URL('https://api.search.brave.com/res/v1/web/search');
+    url.searchParams.set('q', query);
+    url.searchParams.set('count', '20');
+    url.searchParams.set('offset', String(page - 1));
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json', 'X-Subscription-Token': env.BRAVE_SEARCH_API_KEY },
+        signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        logger.warn({ query, page, status: response.status }, 'Brave Search API request failed');
+        return [];
+      }
+      const body = (await response.json()) as BraveSearchResponse;
+      return (body.web?.results ?? []).map((result) => ({ title: result.title, url: result.url, content: result.description }));
+    } catch (err) {
+      logger.warn({ query, page, err }, 'Brave Search API request failed or timed out');
+      return [];
+    }
   }
 
   private async fetchSearch(baseUrl: URL, query: string, page: number): Promise<Response | null> {

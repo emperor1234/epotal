@@ -205,6 +205,11 @@ this uses:
   Restart the SearXNG container after changing this — without it, every
   request from `SearxngSearchIngestionSource` gets a 403.
 
+  Public search engines can throttle a self-hosted instance's server IP. Set
+  `BRAVE_SEARCH_API_KEY` to use Brave's official Search API automatically
+  whenever SearXNG returns no results. The fallback is also used to resolve a
+  contact's company website during email reveal.
+
 - **`OverpassPlacesIngestionSource`** — queries the free, public
   [Overpass API](https://overpass-api.de) (OpenStreetMap data) instead of
   Google Maps, so no headless browser is needed at all (Maps' JS-rendered,

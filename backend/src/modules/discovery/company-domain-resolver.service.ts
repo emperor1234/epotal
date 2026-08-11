@@ -6,6 +6,7 @@ const SEARCH_TIMEOUT_MS = 12_000;
 const EXCLUDED_HOSTS = /(^|\.)(linkedin|facebook|instagram|twitter|x|youtube|github|wikipedia|crunchbase|bloomberg|zoominfo|yellowpages)\.(com|org)$/i;
 
 type SearchResult = { title?: string; url?: string; content?: string };
+type BraveSearchResponse = { web?: { results?: Array<{ title: string; url: string; description?: string }> } };
 
 export class CompanyDomainResolver {
   async resolve(input: { fullName: string; jobTitle?: string | null; companyName?: string | null }): Promise<{ companyName: string; domain: string } | null> {
@@ -60,12 +61,34 @@ export class CompanyDomainResolver {
         const response = await fetch(url, { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) });
         if (!response.ok) continue;
         const body = (await response.json()) as { results?: SearchResult[] };
-        return body.results ?? [];
+        if (body.results?.length) return body.results;
       } catch (err) {
         logger.warn({ baseUrl: base.origin, query, err }, 'Company-domain lookup failed');
       }
     }
-    return [];
+    return this.searchBrave(query);
+  }
+
+  private async searchBrave(query: string): Promise<SearchResult[]> {
+    if (!env.BRAVE_SEARCH_API_KEY) return [];
+    const url = new URL('https://api.search.brave.com/res/v1/web/search');
+    url.searchParams.set('q', query);
+    url.searchParams.set('count', '20');
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json', 'X-Subscription-Token': env.BRAVE_SEARCH_API_KEY },
+        signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        logger.warn({ query, status: response.status }, 'Brave company-domain lookup failed');
+        return [];
+      }
+      const body = (await response.json()) as BraveSearchResponse;
+      return (body.web?.results ?? []).map((result) => ({ title: result.title, url: result.url, content: result.description }));
+    } catch (err) {
+      logger.warn({ query, err }, 'Brave company-domain lookup failed');
+      return [];
+    }
   }
 
   private safeCompanyHostname(value: string): string | null {
