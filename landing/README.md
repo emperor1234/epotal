@@ -22,8 +22,9 @@ profile as an installable APK and attaches it to a GitHub release as
 2. Complete one interactive Android EAS build so Expo can create or register
    the signing credentials.
 3. Add an Expo access token as the GitHub Actions secret `EXPO_TOKEN`.
-4. Publish a GitHub release, or run **Publish mobile release** manually and
-   provide an existing release tag.
+4. Push a version tag such as `v1.0.0`. The workflow builds the APK, creates
+   the GitHub release, and attaches the asset. You can also run **Publish
+   mobile release** manually with an existing tag.
 
 The workflow stops with a clear setup error if the Expo project ID or token is
 missing.

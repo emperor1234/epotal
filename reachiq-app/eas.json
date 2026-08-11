@@ -19,7 +19,6 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://application.luckstrike.co.uk"
       }
@@ -29,7 +28,6 @@
       "android": {
         "buildType": "app-bundle"
       },
-      "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://application.luckstrike.co.uk"
       }
