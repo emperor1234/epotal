@@ -167,6 +167,17 @@ information. A downloadable file is not necessarily an openly licensed file.
 
 ## Notes on scope
 
+### Public personal emails
+
+When a public search result or a person-specific staff card explicitly
+publishes an email address that can be associated with the contact's name,
+ReachIQ stores it encrypted with its source URL. Free-mail domains such as
+Gmail, Outlook, iCloud, Yahoo, and Proton are classified as personal. Reveal
+prefers these public personal addresses, verifies them when a verifier is
+configured, and shows their provenance before falling back to an inferred
+company-domain address. ReachIQ does not invent personal addresses or treat a
+generic company inbox as a person's email.
+
 This ports the architecture and working logic from the design doc's TypeScript
 snippets (pattern-guess algorithm, verification caching, credit reservation
 saga, directory crawl checkpointing, BYOK encryption) faithfully.

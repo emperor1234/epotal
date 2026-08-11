@@ -139,10 +139,13 @@ export default function ContactDetailScreen() {
           <View style={styles.sectionHeaderRowBetween}>
             <Text style={styles.sectionTitleDark}>Contact Intelligence</Text>
             {reveal && (
-              <Badge
-                label={reveal.verificationStatus === 'valid' ? 'Verified' : reveal.verificationStatus === 'catch_all' ? 'Catch-all' : 'Unverified'}
-                tone={reveal.verificationStatus === 'valid' ? 'verified' : 'catchAll'}
-              />
+              <View style={styles.revealBadges}>
+                <Badge label={reveal.emailType === 'personal' ? 'Personal' : reveal.emailType === 'business' ? 'Business' : 'Email'} tone="neutral" />
+                <Badge
+                  label={reveal.verificationStatus === 'valid' ? 'Verified' : reveal.verificationStatus === 'catch_all' ? 'Catch-all' : 'Unverified'}
+                  tone={reveal.verificationStatus === 'valid' ? 'verified' : 'catchAll'}
+                />
+              </View>
             )}
           </View>
 
@@ -151,10 +154,16 @@ export default function ContactDetailScreen() {
               <View style={styles.contactRow}>
                 <Ionicons name="mail-outline" size={20} color={colors.secondary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.contactLabel}>Primary Email</Text>
+                  <Text style={styles.contactLabel}>{reveal.emailType === 'personal' ? 'Personal Email' : reveal.emailType === 'business' ? 'Business Email' : 'Public Email'}</Text>
                   <Text style={styles.contactValueLink}>{reveal.email}</Text>
                 </View>
               </View>
+              {reveal.sourceUrl && (
+                <Pressable accessibilityRole="link" style={styles.emailSource} onPress={() => void Linking.openURL(reveal.sourceUrl!)}>
+                  <Ionicons name="open-outline" size={13} color={colors.outline} />
+                  <Text style={styles.sourceNoteText}>View email’s public source</Text>
+                </Pressable>
+              )}
               <View style={styles.actionRow}>
                 <Button
                   label="Email"
@@ -266,6 +275,7 @@ const styles = StyleSheet.create({
   section: { marginHorizontal: spacing.containerMargin, marginTop: spacing.elementSpacing, gap: 12 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionHeaderRowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  revealBadges: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' },
   sectionTitle: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },
   sectionTitleDark: { ...typography.bodyLg, fontWeight: '700', color: colors.onSurface },
   sectionTitleUpper: { ...typography.labelMd, color: colors.outline, textTransform: 'uppercase', fontWeight: '700' },
@@ -285,6 +295,7 @@ const styles = StyleSheet.create({
   },
   sourceNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.containerMargin, marginTop: spacing.elementSpacing, justifyContent: 'center' },
   sourceNoteText: { ...typography.labelSm, color: colors.outline },
+  emailSource: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   insightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   insightIcon: { width: 32, height: 32, borderRadius: radius.DEFAULT, backgroundColor: colors.surfaceContainer, alignItems: 'center', justifyContent: 'center' },
   insightLabel: { ...typography.labelSm, color: colors.onSurfaceVariant },

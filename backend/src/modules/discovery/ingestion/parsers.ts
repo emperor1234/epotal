@@ -4,8 +4,8 @@ import { ScrapedCandidate } from './ingestion-source.interface';
 // when a source changes its markup/response shape, only these need to change,
 // not the ingestion sources that call them.
 
-export function extractStaffFromPageHtml(html: string): { fullName: string; jobTitle?: string }[] {
-  const results: { fullName: string; jobTitle?: string }[] = [];
+export function extractStaffFromPageHtml(html: string): { fullName: string; jobTitle?: string; publicEmail?: string }[] {
+  const results: { fullName: string; jobTitle?: string; publicEmail?: string }[] = [];
   const cardMatches = html.matchAll(
     /<[^>]+class="[^"]*(?:team-member|staff-card|person)[^"]*"[^>]*>[\s\S]{0,400}?<\/[^>]+>/gi,
   );
@@ -15,11 +15,33 @@ export function extractStaffFromPageHtml(html: string): { fullName: string; jobT
     const titleMatch = /<p[^>]*>([^<]{2,80})<\/p>/i.exec(block[0]);
     const fullName = nameMatch ? decodeHtmlEntities(nameMatch[1]).trim() : '';
     if (isPlausiblePersonName(fullName)) {
-      results.push({ fullName, jobTitle: titleMatch ? decodeHtmlEntities(titleMatch[1]).trim() : undefined });
+      results.push({
+        fullName,
+        jobTitle: titleMatch ? decodeHtmlEntities(titleMatch[1]).trim() : undefined,
+        publicEmail: extractPublicEmail(block[0], fullName),
+      });
     }
   }
 
   return results;
+}
+
+export function extractPublicEmail(text: string, fullName: string): string | undefined {
+  const decoded = decodeHtmlEntities(text).replace(/\s+at\s+/gi, '@').replace(/\s+dot\s+/gi, '.');
+  const candidates = decoded.match(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/gi) ?? [];
+  const nameParts = fullName.toLowerCase().match(/[a-z0-9]{2,}/g) ?? [];
+  const firstName = nameParts[0] ?? '';
+  const lastName = nameParts.at(-1) ?? '';
+  return candidates
+    .map((email) => email.toLowerCase())
+    .find((email) => {
+      const localPart = email.split('@')[0].replace(/[^a-z0-9]/g, '');
+      return Boolean(
+        (firstName.length >= 3 && localPart.includes(firstName))
+        || (lastName.length >= 3 && localPart.includes(lastName))
+        || (firstName && lastName && localPart.startsWith(`${firstName[0]}${lastName}`)),
+      );
+    });
 }
 
 function isPlausiblePersonName(value: string): boolean {
@@ -55,5 +77,6 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&#39;/g, "'")
+    .replace(/&#64;|&commat;/g, '@')
     .replace(/&quot;/g, '"');
 }

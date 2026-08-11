@@ -148,9 +148,26 @@ model Contact {
   descriptions      UserContactDescription[]
   searchResults     SearchResult[]
   sourceEvidence    ContactSourceEvidence[]
+  emailEvidence     ContactEmailEvidence[]
 
   @@unique([sourceType, sourceUrl, fullName])
   @@index([industry, country])
+}
+
+model ContactEmailEvidence {
+  id                 String   @id @default(cuid())
+  contactId          String
+  contact            Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  encryptedEmail     String   @db.Text
+  emailHash          String
+  emailType          String
+  verificationStatus String   @default("unknown")
+  sourceUrl          String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+
+  @@unique([contactId, emailHash])
+  @@index([contactId, emailType, verificationStatus])
 }
 
 model ContactSourceEvidence {
@@ -175,6 +192,8 @@ model ContactReveal {
   email              String
   confidence         Float
   verificationStatus String
+  emailType          String   @default("unknown")
+  sourceUrl          String?
   revealedAt         DateTime @default(now())
 
   @@unique([userId, contactId])

@@ -6,8 +6,10 @@ import { CompanyPatternCacheService } from '../discovery/email-resolution/compan
 import { EmailVerificationService } from '../discovery/email-resolution/email-verification.service';
 import { PatternGuessResolver } from '../discovery/email-resolution/pattern-guess.resolver';
 import { CompanyDomainResolver } from '../discovery/company-domain-resolver.service';
+import { decrypt } from '../../lib/encryption';
 
-const patternGuessResolver = new PatternGuessResolver(new CompanyPatternCacheService(), new EmailVerificationService());
+const emailVerifier = new EmailVerificationService();
+const patternGuessResolver = new PatternGuessResolver(new CompanyPatternCacheService(), emailVerifier);
 const companyDomainResolver = new CompanyDomainResolver();
 
 export async function getContact(contactId: string) {
@@ -47,8 +49,15 @@ export async function revealContact(userId: string, contactId: string) {
   if (existingReveal) return existingReveal; // already paid for — free re-fetch
 
   const contact = await getContact(contactId);
+  const publicEmails = await prisma.contactEmailEvidence.findMany({ where: { contactId } });
+  publicEmails.sort((left, right) => {
+    const typeRank = (value: string) => value === 'personal' ? 0 : value === 'business' ? 1 : 2;
+    const statusRank = (value: string) => value === 'valid' ? 0 : value === 'catch_all' ? 1 : value === 'unknown' ? 2 : 3;
+    return typeRank(left.emailType) - typeRank(right.emailType) || statusRank(left.verificationStatus) - statusRank(right.verificationStatus);
+  });
+
   let company = contact.company;
-  if (!company) {
+  if (!company && publicEmails.length === 0) {
     const resolved = await companyDomainResolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle, companyName: contact.companyNameHint });
     if (!resolved) throw ApiError.notFound('Could not identify this contact’s company website from public sources');
     company = await prisma.company.upsert({
@@ -62,6 +71,56 @@ export async function revealContact(userId: string, contactId: string) {
   const reservation = await creditLedger.reserveCredits(userId, contactId);
 
   try {
+    let foundSuppressedPublicEmail = false;
+    for (const evidence of publicEmails) {
+      const email = decrypt(evidence.encryptedEmail);
+      const verification = await emailVerifier.verify(email);
+      await prisma.contactEmailEvidence.update({
+        where: { id: evidence.id },
+        data: { verificationStatus: verification.status, lastSeenAt: new Date() },
+      });
+      if (verification.status === 'invalid') continue;
+      if (await isSuppressed(email)) {
+        foundSuppressedPublicEmail = true;
+        continue;
+      }
+
+      const reveal = await prisma.contactReveal.create({
+        data: {
+          userId,
+          contactId,
+          email,
+          confidence: verification.status === 'valid' ? 0.98 : verification.status === 'catch_all' ? 0.8 : 0.7,
+          verificationStatus: verification.status,
+          emailType: evidence.emailType,
+          sourceUrl: evidence.sourceUrl,
+        },
+      });
+      await creditLedger.settleReservation(reservation.id);
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { emailAvailability: verification.status === 'valid' ? 'verified_public_email' : 'public_email', refreshedAt: new Date() },
+      });
+      return reveal;
+    }
+
+    if (!company) {
+      const resolved = await companyDomainResolver.resolve({ fullName: contact.fullName, jobTitle: contact.jobTitle, companyName: contact.companyNameHint });
+      if (resolved) {
+        company = await prisma.company.upsert({
+          where: { domain: resolved.domain },
+          create: { domain: resolved.domain, name: resolved.companyName, industry: contact.industry, country: contact.country },
+          update: {},
+        });
+        await prisma.contact.update({ where: { id: contact.id }, data: { companyId: company.id, refreshedAt: new Date() } });
+      }
+    }
+    if (!company) {
+      await creditLedger.refundReservation(reservation.id);
+      if (foundSuppressedPublicEmail) throw ApiError.forbidden('This contact is on the suppression list and cannot be revealed');
+      throw ApiError.notFound('No usable public email or company website was found for this contact');
+    }
+
     const resolution = await patternGuessResolver.resolve({
       fullName: contact.fullName,
       companyDomain: company.domain,
@@ -84,6 +143,7 @@ export async function revealContact(userId: string, contactId: string) {
         email: resolution.email,
         confidence: resolution.confidence,
         verificationStatus: resolution.verificationStatus,
+        emailType: 'business',
       },
     });
 

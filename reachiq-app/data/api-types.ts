@@ -23,7 +23,7 @@ export type ApiContact = {
   sourceType: string | null;
   sourceUrl: string | null;
   sourceCount: number;
-  emailAvailability: 'unknown' | 'needs_company' | 'likely_work_email' | 'verified';
+  emailAvailability: 'unknown' | 'needs_company' | 'likely_work_email' | 'public_email' | 'verified_public_email' | 'verified';
   lastSeenAt: string;
   refreshedAt: string;
   createdAt: string;
@@ -36,6 +36,8 @@ export type ApiReveal = {
   email: string;
   confidence: number;
   verificationStatus: 'valid' | 'invalid' | 'catch_all' | 'unknown';
+  emailType: 'personal' | 'business' | 'unknown';
+  sourceUrl: string | null;
   revealedAt: string;
 };
 

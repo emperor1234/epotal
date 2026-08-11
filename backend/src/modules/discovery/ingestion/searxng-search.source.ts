@@ -1,7 +1,7 @@
 import { env } from '../../../config/env';
 import { logger } from '../../../lib/logger';
 import { IngestionSource, ScrapedCandidate, ScrapeTarget } from './ingestion-source.interface';
-import { parseNameTitleFromSnippet } from './parsers';
+import { extractPublicEmail, parseNameTitleFromSnippet } from './parsers';
 
 const MAX_PAGES_PER_QUERY = 5;
 const SEARCH_TIMEOUT_MS = 15_000;
@@ -81,6 +81,7 @@ export class SearxngSearchIngestionSource implements IngestionSource {
     return {
       ...parsed,
       companyDomain: publicCompanyHostname(result.url, parsed.companyName),
+      publicEmail: extractPublicEmail(`${result.title} ${result.content ?? ''}`, parsed.fullName),
       sourceType: 'search_engine',
       sourceUrl: result.url,
     };

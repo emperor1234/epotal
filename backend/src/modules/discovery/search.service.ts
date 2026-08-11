@@ -3,6 +3,8 @@ import { getComplianceTier } from '../suppression/suppression.service';
 import { createIngestionOrchestrator } from './ingestion.factory';
 import { ScrapedCandidate, ScrapeTarget } from './ingestion/ingestion-source.interface';
 import { buildCanonicalContactKey } from './entity-resolution.service';
+import crypto from 'node:crypto';
+import { encrypt } from '../../lib/encryption';
 
 export async function createSearchQuery(userId: string, target: ScrapeTarget) {
   return prisma.searchQuery.create({
@@ -110,5 +112,40 @@ async function persistCandidate(searchQueryId: string, candidate: ScrapedCandida
     data: [{ searchQueryId, contactId: contact.id }],
     skipDuplicates: true,
   });
+  if (candidate.publicEmail) {
+    const normalizedEmail = candidate.publicEmail.toLowerCase();
+    const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+    await prisma.contactEmailEvidence.upsert({
+      where: { contactId_emailHash: { contactId: contact.id, emailHash } },
+      create: {
+        contactId: contact.id,
+        encryptedEmail: encrypt(normalizedEmail),
+        emailHash,
+        emailType: classifyEmailType(normalizedEmail),
+        sourceUrl: candidate.sourceUrl,
+      },
+      update: { sourceUrl: candidate.sourceUrl, lastSeenAt: new Date() },
+    });
+    await prisma.contact.update({ where: { id: contact.id }, data: { emailAvailability: 'public_email' } });
+  }
   return result.count > 0;
+}
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'aol.com',
+  'fastmail.com',
+  'gmail.com',
+  'googlemail.com',
+  'hotmail.com',
+  'icloud.com',
+  'live.com',
+  'outlook.com',
+  'pm.me',
+  'proton.me',
+  'protonmail.com',
+  'yahoo.com',
+]);
+
+function classifyEmailType(email: string): 'personal' | 'business' {
+  return PERSONAL_EMAIL_DOMAINS.has(email.split('@')[1] ?? '') ? 'personal' : 'business';
 }
