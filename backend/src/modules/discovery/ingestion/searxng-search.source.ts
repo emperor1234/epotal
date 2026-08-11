@@ -106,12 +106,12 @@ export class SearxngSearchIngestionSource implements IngestionSource {
       const fallbackResponse = await this.fetchSearch(publicUrl, query, page);
       if (fallbackResponse?.ok) this.preferredBaseUrl = publicUrl;
       if (fallbackResponse?.ok) return this.readResults(fallbackResponse, query, page);
-      if (publicUrl.protocol === 'https:') {
-        const httpPublicUrl = new URL(publicUrl);
-        httpPublicUrl.protocol = 'http:';
-        const httpResponse = await this.fetchSearch(httpPublicUrl, query, page);
-        if (httpResponse?.ok) this.preferredBaseUrl = httpPublicUrl;
-        return this.readResults(httpResponse, query, page);
+      if (publicUrl.protocol === 'http:') {
+        const httpsPublicUrl = new URL(publicUrl);
+        httpsPublicUrl.protocol = 'https:';
+        const httpsResponse = await this.fetchSearch(httpsPublicUrl, query, page);
+        if (httpsResponse?.ok) this.preferredBaseUrl = httpsPublicUrl;
+        return this.readResults(httpsResponse, query, page);
       }
       return this.readResults(fallbackResponse, query, page);
     }
@@ -144,7 +144,6 @@ export class SearxngSearchIngestionSource implements IngestionSource {
 function publicCoolifyUrl(configured: URL): URL {
   const url = new URL(configured);
   url.port = '';
-  if (url.protocol === 'http:') url.protocol = 'https:';
   return url;
 }
 

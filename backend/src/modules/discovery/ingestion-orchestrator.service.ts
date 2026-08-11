@@ -18,7 +18,12 @@ export class IngestionOrchestrator {
     // explicitly requested. A 'quick' search stays fast; nothing about the
     // request shape should silently trigger an hours-long crawl.
     const includeWeb = !target.sources || target.sources.includes('web');
-    if (target.mode === 'full_directory' && includeWeb) {
+    // Directories and OpenStreetMap contain businesses, not people. Without
+    // an industry they turn a role keyword such as "author" into a business
+    // category, producing irrelevant requests (and avoidable 403/406 errors).
+    // People-only searches are handled by the public-search source below.
+    const includeBusinessSources = includeWeb && Boolean(target.industry?.trim());
+    if (target.mode === 'full_directory' && includeBusinessSources) {
       for (const directory of this.directories) {
         try {
           for await (const listings of directory.streamCandidates(target)) {
@@ -32,7 +37,7 @@ export class IngestionOrchestrator {
       }
     }
 
-    if (includeWeb) {
+    if (includeBusinessSources) {
       for await (const businesses of this.places.streamCandidates(target)) {
         yield* this.resolveStaffForEach(businesses);
       }
