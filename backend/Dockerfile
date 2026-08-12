@@ -3,13 +3,14 @@
 # server.ts starts the BullMQ search worker in-process alongside the HTTP
 # server — one process, one image, one Coolify service.
 
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 # Prisma detects the platform's OpenSSL ABI while generating its engine.
-# Alpine does not include the openssl executable/libraries in the base image,
-# which made Prisma incorrectly select openssl-1.1.x and crash-loop in Coolify.
-RUN apk add --no-cache openssl libc6-compat
+# Install it explicitly so generation and migrations always select OpenSSL 3.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -21,11 +22,13 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl libc6-compat
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
