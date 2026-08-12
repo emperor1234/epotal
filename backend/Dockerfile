@@ -6,6 +6,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Prisma detects the platform's OpenSSL ABI while generating its engine.
+# Alpine does not include the openssl executable/libraries in the base image,
+# which made Prisma incorrectly select openssl-1.1.x and crash-loop in Coolify.
+RUN apk add --no-cache openssl libc6-compat
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -19,6 +24,8 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl libc6-compat
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
