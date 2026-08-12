@@ -7,10 +7,14 @@ import { EmailVerificationService } from '../discovery/email-resolution/email-ve
 import { PatternGuessResolver } from '../discovery/email-resolution/pattern-guess.resolver';
 import { CompanyDomainResolver } from '../discovery/company-domain-resolver.service';
 import { decrypt } from '../../lib/encryption';
+import { PublicEmailResolver } from '../discovery/public-email-resolver.service';
+import { encrypt } from '../../lib/encryption';
+import crypto from 'node:crypto';
 
 const emailVerifier = new EmailVerificationService();
 const patternGuessResolver = new PatternGuessResolver(new CompanyPatternCacheService(), emailVerifier);
 const companyDomainResolver = new CompanyDomainResolver();
+const publicEmailResolver = new PublicEmailResolver();
 
 export async function getContact(contactId: string) {
   const contact = await prisma.contact.findUnique({ where: { id: contactId }, include: { company: true } });
@@ -49,7 +53,29 @@ export async function revealContact(userId: string, contactId: string) {
   if (existingReveal) return existingReveal; // already paid for — free re-fetch
 
   const contact = await getContact(contactId);
-  const publicEmails = await prisma.contactEmailEvidence.findMany({ where: { contactId } });
+  let publicEmails = await prisma.contactEmailEvidence.findMany({ where: { contactId } });
+  if (publicEmails.length === 0) {
+    const evidence = await prisma.contactSourceEvidence.findMany({ where: { contactId }, select: { sourceUrl: true } });
+    const sourceUrls = [contact.sourceUrl, ...evidence.map((item) => item.sourceUrl)].filter((value): value is string => Boolean(value));
+    const published = await publicEmailResolver.resolve(contact.fullName, sourceUrls);
+    if (published) {
+      const normalizedEmail = published.email.toLowerCase();
+      const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+      await prisma.contactEmailEvidence.upsert({
+        where: { contactId_emailHash: { contactId, emailHash } },
+        create: {
+          contactId,
+          encryptedEmail: encrypt(normalizedEmail),
+          emailHash,
+          emailType: classifyEmailType(normalizedEmail),
+          sourceUrl: published.sourceUrl,
+        },
+        update: { sourceUrl: published.sourceUrl, lastSeenAt: new Date() },
+      });
+      await prisma.contact.update({ where: { id: contactId }, data: { emailAvailability: 'public_email', refreshedAt: new Date() } });
+      publicEmails = await prisma.contactEmailEvidence.findMany({ where: { contactId } });
+    }
+  }
   publicEmails.sort((left, right) => {
     const typeRank = (value: string) => value === 'personal' ? 0 : value === 'business' ? 1 : 2;
     const statusRank = (value: string) => value === 'valid' ? 0 : value === 'catch_all' ? 1 : value === 'unknown' ? 2 : 3;
@@ -156,4 +182,14 @@ export async function revealContact(userId: string, contactId: string) {
     await creditLedger.refundReservation(reservation.id).catch(() => undefined);
     throw err;
   }
+}
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'aol.com', 'fastmail.com', 'gmail.com', 'googlemail.com', 'hotmail.com',
+  'icloud.com', 'live.com', 'outlook.com', 'pm.me', 'proton.me',
+  'protonmail.com', 'yahoo.com',
+]);
+
+function classifyEmailType(email: string): 'personal' | 'business' {
+  return PERSONAL_EMAIL_DOMAINS.has(email.split('@')[1] ?? '') ? 'personal' : 'business';
 }
