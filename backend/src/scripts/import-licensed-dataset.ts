@@ -6,6 +6,9 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { getComplianceTier } from '../modules/suppression/suppression.service';
 import { buildCanonicalContactKey, normalizeDomain } from '../modules/discovery/entity-resolution.service';
+import { extractPublicEmail } from '../modules/discovery/ingestion/parsers';
+import { encrypt } from '../lib/encryption';
+import crypto from 'node:crypto';
 
 type RawRow = Record<string, unknown>;
 type ImportRow = {
@@ -17,6 +20,7 @@ type ImportRow = {
   country?: string;
   sizeRange?: string;
   sourceUrl?: string;
+  publicEmail?: string;
 };
 
 const args = readArgs(process.argv.slice(2));
@@ -119,6 +123,24 @@ async function importRow(row: ImportRow, datasetImportId: string) {
   });
   if (evidence.count) await prisma.contact.update({ where: { id: contact.id }, data: { sourceCount: { increment: 1 } } });
   else await prisma.contactSourceEvidence.update({ where: { contactId_sourceUrl: { contactId: contact.id, sourceUrl } }, data: { lastSeenAt: new Date() } });
+
+  const publicEmail = row.publicEmail ? extractPublicEmail(row.publicEmail, row.fullName) : undefined;
+  if (publicEmail) {
+    const normalizedEmail = publicEmail.toLowerCase();
+    const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+    await prisma.contactEmailEvidence.upsert({
+      where: { contactId_emailHash: { contactId: contact.id, emailHash } },
+      create: {
+        contactId: contact.id,
+        encryptedEmail: encrypt(normalizedEmail),
+        emailHash,
+        emailType: classifyEmailType(normalizedEmail),
+        sourceUrl,
+      },
+      update: { sourceUrl, lastSeenAt: new Date() },
+    });
+    await prisma.contact.update({ where: { id: contact.id }, data: { emailAvailability: 'public_email' } });
+  }
 }
 
 async function* streamRows(path: string, kind: 'csv' | 'ndjson'): AsyncGenerator<RawRow> {
@@ -152,7 +174,18 @@ function normalizeRow(raw: RawRow): ImportRow | null {
     country: value('country', 'company_country', 'location_country'),
     sizeRange: value('size_range', 'sizeRange', 'company_size', 'employee_count_range'),
     sourceUrl: value('source_url', 'sourceUrl', 'profile_url', 'url'),
+    publicEmail: value('public_email', 'publicEmail', 'email'),
   };
+}
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'aol.com', 'fastmail.com', 'gmail.com', 'googlemail.com', 'hotmail.com',
+  'icloud.com', 'live.com', 'outlook.com', 'pm.me', 'proton.me',
+  'protonmail.com', 'yahoo.com',
+]);
+
+function classifyEmailType(email: string): 'personal' | 'business' {
+  return PERSONAL_EMAIL_DOMAINS.has(email.split('@')[1] ?? '') ? 'personal' : 'business';
 }
 
 function readArgs(values: string[]): Record<string, string> {

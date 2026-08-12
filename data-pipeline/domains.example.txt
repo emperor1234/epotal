@@ -1,0 +1,2 @@
+# Add only domains whose public pages you are permitted to process.
+example.com
