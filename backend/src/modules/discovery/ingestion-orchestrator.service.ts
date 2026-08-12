@@ -4,6 +4,7 @@ import { DirectoryIngestionSource } from './ingestion/directories/directory.sour
 import { OverpassPlacesIngestionSource } from './ingestion/overpass-places.source';
 import { SearxngSearchIngestionSource } from './ingestion/searxng-search.source';
 import { ScrapedCandidate, ScrapeTarget } from './ingestion/ingestion-source.interface';
+import { env } from '../../config/env';
 
 export class IngestionOrchestrator {
   constructor(
@@ -22,7 +23,7 @@ export class IngestionOrchestrator {
     // an industry they turn a role keyword such as "author" into a business
     // category, producing irrelevant requests (and avoidable 403/406 errors).
     // People-only searches are handled by the public-search source below.
-    const includeBusinessSources = includeWeb && Boolean(target.industry?.trim());
+    const includeBusinessSources = env.ENABLE_BUSINESS_SOURCES && includeWeb && Boolean(target.industry?.trim());
     if (target.mode === 'full_directory' && includeBusinessSources) {
       for (const directory of this.directories) {
         try {

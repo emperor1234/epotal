@@ -32,6 +32,11 @@ const schema = z.object({
   BRAVE_SEARCH_API_KEY: z.string().optional().default(''),
   // Public Overpass API (places/business step) — free, no key needed.
   OVERPASS_API_URL: z.string().url().default('https://overpass-api.de/api/interpreter'),
+  // Business directories and Overpass are supplemental and frequently block
+  // datacenter traffic. Keep them off unless deployment infrastructure has
+  // been prepared for those sources; local/imported contacts and public
+  // search continue to work normally.
+  ENABLE_BUSINESS_SOURCES: z.coerce.boolean().default(false),
 
   REVEAL_CREDIT_COST: z.coerce.number().default(1),
 });

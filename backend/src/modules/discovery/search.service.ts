@@ -25,7 +25,7 @@ export async function runSearch(searchQueryId: string, target: ScrapeTarget): Pr
   if (started.count === 0) return 0; // cancelled while waiting in the queue
 
   const orchestrator = createIngestionOrchestrator();
-  let persisted = 0;
+  let persisted = await linkIndexedContacts(searchQueryId, target);
 
   try {
     for await (const batch of orchestrator.run(target)) {
@@ -47,6 +47,44 @@ export async function runSearch(searchQueryId: string, target: ScrapeTarget): Pr
   }
 
   return persisted;
+}
+
+// Search PostgreSQL first. Open/licensed dataset imports and contacts found by
+// previous crawls must remain useful even when every external search engine is
+// throttled. Country and at least one keyword are the required match; optional
+// fields narrow the result set without becoming hidden requirements.
+async function linkIndexedContacts(searchQueryId: string, target: ScrapeTarget): Promise<number> {
+  const excluded = target.excludedKeywords ?? [];
+  const searchableFields = (term: string) => [
+    { fullName: { contains: term, mode: 'insensitive' as const } },
+    { jobTitle: { contains: term, mode: 'insensitive' as const } },
+    { companyNameHint: { contains: term, mode: 'insensitive' as const } },
+    { company: { is: { name: { contains: term, mode: 'insensitive' as const } } } },
+  ];
+  const contacts = await prisma.contact.findMany({
+    where: {
+      country: { contains: target.country, mode: 'insensitive' },
+      AND: [
+        { OR: target.keywords.flatMap(searchableFields) },
+        ...(target.industry ? [{ industry: { contains: target.industry, mode: 'insensitive' as const } }] : []),
+        ...(target.jobTitle ? [{ jobTitle: { contains: target.jobTitle, mode: 'insensitive' as const } }] : []),
+        ...(target.company ? [{ OR: [
+          { companyNameHint: { contains: target.company, mode: 'insensitive' as const } },
+          { company: { is: { name: { contains: target.company, mode: 'insensitive' as const } } } },
+        ] }] : []),
+        ...excluded.map((term) => ({ NOT: { OR: searchableFields(term) } })),
+      ],
+    },
+    select: { id: true },
+    orderBy: [{ sourceCount: 'desc' }, { lastSeenAt: 'desc' }],
+    take: 200,
+  });
+  if (contacts.length === 0) return 0;
+  const linked = await prisma.searchResult.createMany({
+    data: contacts.map((contact) => ({ searchQueryId, contactId: contact.id })),
+    skipDuplicates: true,
+  });
+  return linked.count;
 }
 
 async function searchWasCancelled(searchQueryId: string): Promise<boolean> {
