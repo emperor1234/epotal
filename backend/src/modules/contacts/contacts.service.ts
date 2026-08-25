@@ -16,10 +16,15 @@ const patternGuessResolver = new PatternGuessResolver(new CompanyPatternCacheSer
 const companyDomainResolver = new CompanyDomainResolver();
 const publicEmailResolver = new PublicEmailResolver();
 
-export async function getContact(contactId: string) {
-  const contact = await prisma.contact.findUnique({ where: { id: contactId }, include: { company: true } });
+export async function getContact(contactId: string, userId?: string) {
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    include: { company: true, reveals: userId ? { where: { userId }, take: 1 } : false },
+  });
   if (!contact) throw ApiError.notFound('Contact not found');
-  return contact;
+  if (!userId) return contact;
+  const { reveals, ...contactWithReveal } = contact;
+  return { ...contactWithReveal, reveal: reveals[0] ?? null };
 }
 
 export async function listContacts(params: { industry?: string; country?: string; cursor?: string; take?: number }) {

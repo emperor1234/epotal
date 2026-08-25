@@ -30,7 +30,7 @@ contactsRouter.get(
 contactsRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const contact = await contactsService.getContact(String(req.params.id));
+    const contact = await contactsService.getContact(String(req.params.id), req.userId!);
     res.json({ contact });
   }),
 );

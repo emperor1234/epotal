@@ -7,6 +7,18 @@ export type ApiCompany = {
   sizeRange: string | null;
 };
 
+export type ApiReveal = {
+  id: string;
+  userId: string;
+  contactId: string;
+  email: string;
+  confidence: number;
+  verificationStatus: 'valid' | 'invalid' | 'catch_all' | 'unknown';
+  emailType: 'personal' | 'business' | 'unknown';
+  sourceUrl: string | null;
+  revealedAt: string;
+};
+
 export type ApiContact = {
   id: string;
   fullName: string;
@@ -27,18 +39,7 @@ export type ApiContact = {
   lastSeenAt: string;
   refreshedAt: string;
   createdAt: string;
-};
-
-export type ApiReveal = {
-  id: string;
-  userId: string;
-  contactId: string;
-  email: string;
-  confidence: number;
-  verificationStatus: 'valid' | 'invalid' | 'catch_all' | 'unknown';
-  emailType: 'personal' | 'business' | 'unknown';
-  sourceUrl: string | null;
-  revealedAt: string;
+  reveal?: ApiReveal | null;
 };
 
 export type ApiSearchQuery = {

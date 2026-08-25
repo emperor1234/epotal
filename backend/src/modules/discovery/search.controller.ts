@@ -66,11 +66,14 @@ searchRouter.get(
 
     const results = await prisma.searchResult.findMany({
       where: { searchQueryId: searchQuery.id },
-      include: { contact: { include: { company: true } } },
+      include: { contact: { include: { company: true, reveals: { where: { userId: req.userId! }, take: 1 } } } },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
-    const contacts = results.map((result) => result.contact);
+    const contacts = results.map((result) => {
+      const { reveals, ...contact } = result.contact;
+      return { ...contact, reveal: reveals[0] ?? null };
+    });
 
     res.json({ status: searchQuery.status, contacts });
   }),

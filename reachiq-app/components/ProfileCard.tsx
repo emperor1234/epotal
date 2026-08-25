@@ -21,7 +21,7 @@ export function ProfileCard({
 }) {
   const router = useRouter();
   const { withAuth, refreshWallet } = useAuth();
-  const [reveal, setReveal] = useState<ApiReveal | null>(null);
+  const [reveal, setReveal] = useState<ApiReveal | null>(contact.reveal ?? null);
   const [revealing, setRevealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -30,6 +30,10 @@ export function ProfileCard({
   useEffect(() => {
     savedContacts.isSaved(contact.id).then(setSaved);
   }, [contact.id]);
+
+  useEffect(() => {
+    setReveal(contact.reveal ?? null);
+  }, [contact.id, contact.reveal]);
 
   const confidenceColor = reveal?.verificationStatus === 'valid' ? colors.emerald : colors.amber;
   const filledBars = reveal ? Math.max(1, Math.round(reveal.confidence * 4)) : 0;
