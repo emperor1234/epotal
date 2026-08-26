@@ -40,6 +40,11 @@ export class CompanyDomainResolver {
   }
 
   private async search(query: string): Promise<SearchResult[]> {
+    // Prefer the managed API for predictable production results. SearXNG is
+    // retained as a self-hosted fallback when Brave is unavailable or empty.
+    const braveResults = await this.searchBrave(query);
+    if (braveResults.length) return braveResults;
+
     const configured = new URL(env.SEARXNG_URL);
     const bases: URL[] = [];
     if (configured.port) {
@@ -66,7 +71,7 @@ export class CompanyDomainResolver {
         logger.warn({ baseUrl: base.origin, query, err }, 'Company-domain lookup failed');
       }
     }
-    return this.searchBrave(query);
+    return [];
   }
 
   private async searchBrave(query: string): Promise<SearchResult[]> {

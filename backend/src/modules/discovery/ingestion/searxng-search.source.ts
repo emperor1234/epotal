@@ -109,6 +109,12 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   }
 
   private async search(query: string, page: number): Promise<SearxngResult[]> {
+    // Brave is the primary production provider. A self-hosted SearXNG
+    // instance remains available when Brave is unconfigured, unavailable,
+    // or returns no usable results.
+    const braveResults = await this.searchBrave(query, page);
+    if (braveResults.length) return braveResults;
+
     const configuredUrl = this.preferredBaseUrl;
     const response = await this.fetchSearch(configuredUrl, query, page);
 
@@ -136,11 +142,11 @@ export class SearxngSearchIngestionSource implements IngestionSource {
   }
 
   private async readResultsWithFallback(response: Response | null, query: string, page: number): Promise<SearxngResult[]> {
-    const results = await this.readResults(response, query, page);
-    return results.length > 0 || !env.BRAVE_SEARCH_API_KEY ? results : this.searchBrave(query, page);
+    return this.readResults(response, query, page);
   }
 
   private async searchBrave(query: string, page: number): Promise<SearxngResult[]> {
+    if (!env.BRAVE_SEARCH_API_KEY) return [];
     const url = new URL('https://api.search.brave.com/res/v1/web/search');
     url.searchParams.set('q', query);
     url.searchParams.set('count', '20');
